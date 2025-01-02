@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { ProductData } from "./FileUpload";
 import { Button } from "@/components/ui/button";
+import { Slider } from "@/components/ui/slider";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -11,6 +12,8 @@ interface ProductGridProps {
 
 export const ProductGrid = ({ products, onImageProcessed }: ProductGridProps) => {
   const [processingIndex, setProcessingIndex] = useState<number | null>(null);
+  const [selectedColor, setSelectedColor] = useState("#ffffff");
+  const [opacity, setOpacity] = useState([100]); // Using array for Slider component
   
   console.log("Rendering ProductGrid with products:", products);
 
@@ -36,7 +39,6 @@ export const ProductGrid = ({ products, onImageProcessed }: ProductGridProps) =>
 
       console.log('Successfully processed image for:', product.title);
       
-      // Store the processed image URL
       onImageProcessed(index, data.processedUrl);
       
       toast.success("Background removed successfully!");
@@ -66,11 +68,26 @@ export const ProductGrid = ({ products, onImageProcessed }: ProductGridProps) =>
       {products.map((product, index) => (
         <div key={index} className="bg-white rounded-lg shadow-md overflow-hidden">
           <div className="relative aspect-square">
-            <img
-              src={product.processedImageUrl || product["image link"]}
-              alt={product.title}
-              className="w-full h-full object-contain p-4"
-            />
+            {product.processedImageUrl ? (
+              <div 
+                className="w-full h-full relative"
+                style={{
+                  backgroundColor: `${selectedColor}${Math.round(opacity[0] * 2.55).toString(16).padStart(2, '0')}`,
+                }}
+              >
+                <img
+                  src={product.processedImageUrl}
+                  alt={product.title}
+                  className="w-full h-full object-contain p-4 absolute inset-0"
+                />
+              </div>
+            ) : (
+              <img
+                src={product["image link"]}
+                alt={product.title}
+                className="w-full h-full object-contain p-4"
+              />
+            )}
             {processingIndex === index && (
               <div className="absolute inset-0 bg-slate-900/50 flex items-center justify-center">
                 <div className="w-16 h-16 border-4 border-slate-200 border-t-violet-500 rounded-full animate-spin" />
@@ -79,6 +96,31 @@ export const ProductGrid = ({ products, onImageProcessed }: ProductGridProps) =>
           </div>
           <div className="p-4 space-y-3">
             <h3 className="font-medium text-slate-900 text-center truncate">{product.title}</h3>
+            
+            {product.processedImageUrl && (
+              <div className="space-y-3">
+                <div className="space-y-2">
+                  <label className="text-sm text-slate-600 block">Background Color</label>
+                  <input
+                    type="color"
+                    value={selectedColor}
+                    onChange={(e) => setSelectedColor(e.target.value)}
+                    className="w-full h-8 cursor-pointer"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm text-slate-600 block">Opacity: {opacity[0]}%</label>
+                  <Slider
+                    value={opacity}
+                    onValueChange={setOpacity}
+                    max={100}
+                    step={1}
+                    className="w-full"
+                  />
+                </div>
+              </div>
+            )}
+            
             <div className="flex gap-2 justify-center">
               <Button
                 variant="outline"

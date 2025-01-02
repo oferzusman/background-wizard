@@ -11,13 +11,14 @@ interface ProductGridProps {
 
 export const ProductGrid = ({ products, onImageProcessed }: ProductGridProps) => {
   const [processingIndex, setProcessingIndex] = useState<number | null>(null);
+  
+  console.log("Rendering ProductGrid with products:", products);
 
   const handleRemoveBackground = async (index: number) => {
     setProcessingIndex(index);
     const product = products[index];
     
     try {
-      // Load the image
       const img = new Image();
       img.crossOrigin = "anonymous";
       img.src = product.image_link;
@@ -27,7 +28,6 @@ export const ProductGrid = ({ products, onImageProcessed }: ProductGridProps) =>
         img.onerror = reject;
       });
 
-      // Process the image
       const processedBlob = await removeBackground(img);
       const processedUrl = URL.createObjectURL(processedBlob);
       
@@ -50,15 +50,19 @@ export const ProductGrid = ({ products, onImageProcessed }: ProductGridProps) =>
     document.body.removeChild(link);
   };
 
+  if (products.length === 0) {
+    return null;
+  }
+
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 p-6">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 p-6">
       {products.map((product, index) => (
         <div key={index} className="bg-white rounded-lg shadow-md overflow-hidden">
           <div className="relative aspect-square">
             <img
               src={product.processedImageUrl || product.image_link}
               alt={product.title}
-              className="w-full h-full object-contain"
+              className="w-full h-full object-contain p-4"
             />
             {processingIndex === index && (
               <div className="absolute inset-0 bg-slate-900/50 flex items-center justify-center">
@@ -66,9 +70,9 @@ export const ProductGrid = ({ products, onImageProcessed }: ProductGridProps) =>
               </div>
             )}
           </div>
-          <div className="p-4">
-            <h3 className="font-medium text-slate-900 mb-2">{product.title}</h3>
-            <div className="flex gap-2">
+          <div className="p-4 space-y-3">
+            <h3 className="font-medium text-slate-900 text-center truncate">{product.title}</h3>
+            <div className="flex gap-2 justify-center">
               <Button
                 variant="outline"
                 size="sm"

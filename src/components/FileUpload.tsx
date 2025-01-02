@@ -21,19 +21,21 @@ export const FileUpload = ({ onDataParsed }: FileUploadProps) => {
     if (!file) return;
 
     setIsLoading(true);
+    console.log("Starting file upload");
     
     try {
       const text = await file.text();
       Papa.parse(text, {
         header: true,
         complete: (results) => {
+          console.log("Parsed data:", results.data);
           const parsedData = results.data as ProductData[];
           if (!parsedData[0]?.title || !parsedData[0]?.image_link) {
             toast.error("File must contain 'title' and 'image link' columns");
             return;
           }
           onDataParsed(parsedData);
-          toast.success("File uploaded successfully!");
+          toast.success(`Successfully loaded ${parsedData.length} products!`);
         },
         error: (error) => {
           console.error("Error parsing file:", error);

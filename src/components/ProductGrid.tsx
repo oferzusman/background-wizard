@@ -20,7 +20,7 @@ export const ProductGrid = ({ products, onImageProcessed }: ProductGridProps) =>
       // Load the image
       const img = new Image();
       img.crossOrigin = "anonymous";
-      img.src = product.imageUrl;
+      img.src = product.image_url;
       
       await new Promise((resolve, reject) => {
         img.onload = resolve;
@@ -41,10 +41,10 @@ export const ProductGrid = ({ products, onImageProcessed }: ProductGridProps) =>
     }
   };
 
-  const handleDownload = (imageUrl: string, productName: string) => {
+  const handleDownload = (imageUrl: string, title: string) => {
     const link = document.createElement("a");
     link.href = imageUrl;
-    link.download = `${productName}-processed.png`;
+    link.download = `${title}-processed.png`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -56,8 +56,8 @@ export const ProductGrid = ({ products, onImageProcessed }: ProductGridProps) =>
         <div key={index} className="bg-white rounded-lg shadow-md overflow-hidden">
           <div className="relative aspect-square">
             <img
-              src={product.processedImageUrl || product.imageUrl}
-              alt={product.name}
+              src={product.processedImageUrl || product.image_url}
+              alt={product.title}
               className="w-full h-full object-contain"
             />
             {processingIndex === index && (
@@ -67,7 +67,7 @@ export const ProductGrid = ({ products, onImageProcessed }: ProductGridProps) =>
             )}
           </div>
           <div className="p-4">
-            <h3 className="font-medium text-slate-900 mb-2">{product.name}</h3>
+            <h3 className="font-medium text-slate-900 mb-2">{product.title}</h3>
             <div className="flex gap-2">
               <Button
                 variant="outline"
@@ -81,7 +81,7 @@ export const ProductGrid = ({ products, onImageProcessed }: ProductGridProps) =>
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => handleDownload(product.processedImageUrl!, product.name)}
+                  onClick={() => handleDownload(product.processedImageUrl!, product.title)}
                 >
                   Download
                 </Button>

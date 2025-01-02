@@ -8,8 +8,8 @@ interface FileUploadProps {
 }
 
 export interface ProductData {
-  name: string;
-  imageUrl: string;
+  title: string;
+  image_url: string;
   processedImageUrl?: string;
 }
 
@@ -28,8 +28,8 @@ export const FileUpload = ({ onDataParsed }: FileUploadProps) => {
         header: true,
         complete: (results) => {
           const parsedData = results.data as ProductData[];
-          if (!parsedData[0]?.name || !parsedData[0]?.imageUrl) {
-            toast.error("File must contain 'name' and 'imageUrl' columns");
+          if (!parsedData[0]?.title || !parsedData[0]?.image_url) {
+            toast.error("File must contain 'title' and 'image_url' columns");
             return;
           }
           onDataParsed(parsedData);

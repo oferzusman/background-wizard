@@ -20,7 +20,7 @@ export const ProductGrid = ({ products, onImageProcessed }: ProductGridProps) =>
       // Load the image
       const img = new Image();
       img.crossOrigin = "anonymous";
-      img.src = product.image_url;
+      img.src = product.image_link;
       
       await new Promise((resolve, reject) => {
         img.onload = resolve;
@@ -56,7 +56,7 @@ export const ProductGrid = ({ products, onImageProcessed }: ProductGridProps) =>
         <div key={index} className="bg-white rounded-lg shadow-md overflow-hidden">
           <div className="relative aspect-square">
             <img
-              src={product.processedImageUrl || product.image_url}
+              src={product.processedImageUrl || product.image_link}
               alt={product.title}
               className="w-full h-full object-contain"
             />

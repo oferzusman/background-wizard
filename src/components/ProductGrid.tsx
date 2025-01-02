@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { ProductData } from "./FileUpload";
 import { Button } from "@/components/ui/button";
-import { removeBackground } from "@/lib/imageProcessing";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 interface ProductGridProps {
   products: ProductData[];
@@ -19,19 +19,23 @@ export const ProductGrid = ({ products, onImageProcessed }: ProductGridProps) =>
     const product = products[index];
     
     try {
-      const img = new Image();
-      img.crossOrigin = "anonymous";
-      img.src = product["image link"];
-      
-      await new Promise((resolve, reject) => {
-        img.onload = resolve;
-        img.onerror = reject;
+      // Call our edge function
+      const { data: processedImage, error } = await supabase.functions.invoke('remove-background', {
+        body: { imageUrl: product["image link"] }
       });
 
-      const processedBlob = await removeBackground(img);
-      const processedUrl = URL.createObjectURL(processedBlob);
+      if (error) throw error;
+
+      // Create a blob URL from the response
+      const blob = new Blob([processedImage], { type: 'image/png' });
+      const processedUrl = URL.createObjectURL(blob);
       
+      // Store the processed image URL
       onImageProcessed(index, processedUrl);
+      
+      // Open the processed image in a new tab
+      window.open(processedUrl, '_blank');
+      
       toast.success("Background removed successfully!");
     } catch (error) {
       console.error("Error processing image:", error);

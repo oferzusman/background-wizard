@@ -21,8 +21,7 @@ export const ProductGrid = ({ products, onImageProcessed }: ProductGridProps) =>
     try {
       console.log('Starting background removal for:', product.title);
       
-      // Call our edge function
-      const { data: processedImage, error } = await supabase.functions.invoke('remove-background', {
+      const { data, error } = await supabase.functions.invoke('remove-background', {
         body: { imageUrl: product["image link"] }
       });
 
@@ -31,18 +30,14 @@ export const ProductGrid = ({ products, onImageProcessed }: ProductGridProps) =>
         throw error;
       }
 
-      if (!processedImage) {
-        throw new Error("No processed image returned");
+      if (!data?.processedUrl) {
+        throw new Error("No processed image URL returned");
       }
 
-      // Create a blob URL from the response
-      const blob = new Blob([processedImage], { type: 'image/png' });
-      const processedUrl = URL.createObjectURL(blob);
-      
       console.log('Successfully processed image for:', product.title);
       
       // Store the processed image URL
-      onImageProcessed(index, processedUrl);
+      onImageProcessed(index, data.processedUrl);
       
       toast.success("Background removed successfully!");
     } catch (error) {

@@ -18,16 +18,20 @@ serve(async (req) => {
       throw new Error('Missing Stability API key');
     }
 
+    const supabase = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    );
+
     const { imageUrl } = await req.json();
     console.log('Processing image:', imageUrl);
 
-    // Fetch the image with custom headers to bypass CORS
+    // Fetch the image with custom headers
     const imageResponse = await fetch(imageUrl, {
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
         'Accept': 'image/webp,image/apng,image/*,*/*;q=0.8',
         'Accept-Language': 'en-US,en;q=0.9',
-        'Referer': 'https://www.bettershop.co.il/',
       },
     });
 
@@ -39,7 +43,7 @@ serve(async (req) => {
     const imageBlob = await imageResponse.blob();
     console.log('Successfully fetched image, size:', imageBlob.size);
 
-    // Create form data
+    // Create form data for Stability AI
     const formData = new FormData();
     formData.append('image', imageBlob);
     formData.append('output_format', 'png');
@@ -67,14 +71,44 @@ serve(async (req) => {
     console.log('Successfully processed image with Stability AI');
     const processedImageBuffer = await stabilityResponse.arrayBuffer();
     
-    // Return the processed image with appropriate headers
-    return new Response(processedImageBuffer, {
-      headers: {
-        ...corsHeaders,
-        'Content-Type': 'image/png',
-        'Cache-Control': 'no-cache',
-      },
-    });
+    // Store the processed image in Supabase Storage
+    const fileName = `${crypto.randomUUID()}.png`;
+    const { data: uploadData, error: uploadError } = await supabase.storage
+      .from('processed-images')
+      .upload(fileName, processedImageBuffer, {
+        contentType: 'image/png',
+        cacheControl: '3600',
+      });
+
+    if (uploadError) {
+      console.error('Failed to upload to storage:', uploadError);
+      throw new Error('Failed to store processed image');
+    }
+
+    // Get the public URL for the uploaded image
+    const { data: { publicUrl } } = supabase.storage
+      .from('processed-images')
+      .getPublicUrl(fileName);
+
+    // Store the reference in the database
+    const { error: dbError } = await supabase
+      .from('processed_images')
+      .insert({
+        original_url: imageUrl,
+        processed_url: publicUrl,
+      });
+
+    if (dbError) {
+      console.error('Failed to store in database:', dbError);
+      throw new Error('Failed to store image reference');
+    }
+
+    return new Response(
+      JSON.stringify({ processedUrl: publicUrl }),
+      {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      }
+    );
   } catch (error) {
     console.error('Error in remove-background function:', error);
     return new Response(

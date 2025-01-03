@@ -9,6 +9,60 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      file_history: {
+        Row: {
+          file_type: string
+          file_url: string | null
+          id: string
+          is_url: boolean | null
+          original_filename: string | null
+          status: string | null
+          uploaded_at: string | null
+        }
+        Insert: {
+          file_type: string
+          file_url?: string | null
+          id?: string
+          is_url?: boolean | null
+          original_filename?: string | null
+          status?: string | null
+          uploaded_at?: string | null
+        }
+        Update: {
+          file_type?: string
+          file_url?: string | null
+          id?: string
+          is_url?: boolean | null
+          original_filename?: string | null
+          status?: string | null
+          uploaded_at?: string | null
+        }
+        Relationships: []
+      }
+      file_uploads: {
+        Row: {
+          file_content: Json | null
+          file_type: string
+          file_url: string | null
+          id: string
+          uploaded_at: string | null
+        }
+        Insert: {
+          file_content?: Json | null
+          file_type: string
+          file_url?: string | null
+          id?: string
+          uploaded_at?: string | null
+        }
+        Update: {
+          file_content?: Json | null
+          file_type?: string
+          file_url?: string | null
+          id?: string
+          uploaded_at?: string | null
+        }
+        Relationships: []
+      }
       processed_images: {
         Row: {
           created_at: string | null
@@ -27,6 +81,36 @@ export type Database = {
           id?: string
           original_url?: string
           processed_url?: string | null
+        }
+        Relationships: []
+      }
+      products: {
+        Row: {
+          created_at: string | null
+          id: string
+          image_url: string
+          processed_image_url: string | null
+          product_id: string | null
+          product_type: string | null
+          title: string
+        }
+        Insert: {
+          created_at?: string | null
+          id: string
+          image_url: string
+          processed_image_url?: string | null
+          product_id?: string | null
+          product_type?: string | null
+          title: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          image_url?: string
+          processed_image_url?: string | null
+          product_id?: string | null
+          product_type?: string | null
+          title?: string
         }
         Relationships: []
       }

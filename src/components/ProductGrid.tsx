@@ -141,6 +141,7 @@ export const ProductGrid = ({ products, onImageProcessed }: ProductGridProps) =>
   const filteredProducts = products.filter((product) => {
     return Object.entries(filters).every(([field, value]) => {
       if (!value) return true;
+      if (field === 'product_type' && value === 'all') return true;
       const productValue = String(product[field as keyof ProductData] || "").toLowerCase();
       return productValue.includes(value.toLowerCase());
     });

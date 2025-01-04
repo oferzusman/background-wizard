@@ -55,7 +55,7 @@ export const ProductFilters = ({ onFilterChange, products, filteredCount }: Prod
               <SelectValue placeholder="Select product type" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">All Types</SelectItem>
+              <SelectItem value="all">All Types</SelectItem>
               {productTypes.map(([type, count]) => (
                 <SelectItem key={type} value={type}>
                   {type} ({count})

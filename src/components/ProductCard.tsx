@@ -61,6 +61,13 @@ export const ProductCard = ({
             className="data-[state=checked]:bg-violet-600 data-[state=checked]:border-violet-600"
           />
         </div>
+        {product.processedImageUrl && (
+          <div className="absolute top-3 right-3 z-10">
+            <div className="bg-green-100 p-1.5 rounded-full">
+              <Eraser className="w-4 h-4 text-green-600" />
+            </div>
+          </div>
+        )}
         {product.processedImageUrl ? (
           <div
             className="w-full h-full relative"
@@ -89,6 +96,7 @@ export const ProductCard = ({
           </div>
         )}
       </div>
+
       <div className="p-4 space-y-3">
         <h3 className="font-medium text-slate-900 text-center truncate">
           {product.title}

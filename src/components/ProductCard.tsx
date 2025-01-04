@@ -10,7 +10,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Download, Eraser, Image } from "lucide-react";
+import { Download, Eraser, Image, X } from "lucide-react";
 
 interface ProductCardProps {
   product: ProductData;
@@ -98,15 +98,19 @@ export const ProductCard = ({
               )}
             </div>
           </DialogTrigger>
-          <DialogContent className="max-w-4xl w-full h-[80vh]">
-            <DialogHeader>
-              <DialogTitle>{product.title}</DialogTitle>
-            </DialogHeader>
-            <div className="flex items-center justify-center h-full">
+          <DialogContent className="max-w-[95vw] max-h-[95vh] w-auto h-auto p-0">
+            <div className="relative">
+              <button
+                onClick={() => setIsImageDialogOpen(false)}
+                className="absolute right-2 top-2 z-50 p-2 rounded-full bg-black/50 hover:bg-black/70 transition-colors"
+              >
+                <X className="h-4 w-4 text-white" />
+              </button>
               <img
                 src={product.processedImageUrl || product["image link"]}
                 alt={product.title}
-                className="max-h-full max-w-full object-contain"
+                className="w-full h-full object-contain"
+                style={{ maxHeight: "95vh" }}
               />
             </div>
           </DialogContent>

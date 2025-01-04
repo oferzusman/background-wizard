@@ -22,6 +22,7 @@ export const parseFileContent = async (
               "image link": item["image link"],
               product_type: item.product_type || item["product type"],
               id: item.id,
+              link: item.link
             }));
           console.log("Parsed CSV/TSV data:", parsedData);
           resolve(parsedData);
@@ -93,19 +94,23 @@ export const parseFileContent = async (
         const imageLink = item.image_link || item.link || item.imageLink || item.image || "";
         const productType = item.google_product_category || item.product_type || item.productType || item.category || "";
         const id = item.id || item.productId || item.sku || "";
+        const link = item.link || "";
 
         console.log("Processing item:", {
           originalTitle: item.title,
           originalImageLink: item.image_link,
+          originalLink: item.link,
           mappedTitle: title,
-          mappedImageLink: imageLink
+          mappedImageLink: imageLink,
+          mappedLink: link
         });
 
         return {
           title,
           "image link": imageLink,
           product_type: productType,
-          id
+          id,
+          link
         };
       }).filter(item => {
         const isValid = item.title && item["image link"];

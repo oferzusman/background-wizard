@@ -18,6 +18,7 @@ export interface ProductData {
   processedImageUrl?: string;
   product_type?: string;
   id?: string;
+  link?: string;
 }
 
 export const FileUpload = ({ onDataParsed }: FileUploadProps) => {

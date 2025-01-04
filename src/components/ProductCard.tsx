@@ -44,6 +44,8 @@ export const ProductCard = ({
   handleDownloadOriginal,
   handleDownloadWithBackground,
 }: ProductCardProps) => {
+  const [isImageDialogOpen, setIsImageDialogOpen] = useState(false);
+
   return (
     <motion.div
       initial={{ opacity: 0, scale: 0.95 }}
@@ -68,28 +70,48 @@ export const ProductCard = ({
             </div>
           </div>
         )}
-        {product.processedImageUrl ? (
-          <div
-            className="w-full h-full relative"
-            style={{
-              backgroundColor: `${selectedColor}${Math.round(opacity[0] * 2.55)
-                .toString(16)
-                .padStart(2, "0")}`,
-            }}
-          >
-            <img
-              src={product.processedImageUrl}
-              alt={product.title}
-              className="w-full h-full object-contain p-4 absolute inset-0 transition-transform duration-300 group-hover:scale-105"
-            />
-          </div>
-        ) : (
-          <img
-            src={product["image link"]}
-            alt={product.title}
-            className="w-full h-full object-contain p-4 transition-transform duration-300 group-hover:scale-105"
-          />
-        )}
+
+        <Dialog open={isImageDialogOpen} onOpenChange={setIsImageDialogOpen}>
+          <DialogTrigger asChild>
+            <div className="w-full h-full cursor-pointer">
+              {product.processedImageUrl ? (
+                <div
+                  className="w-full h-full relative"
+                  style={{
+                    backgroundColor: `${selectedColor}${Math.round(opacity[0] * 2.55)
+                      .toString(16)
+                      .padStart(2, "0")}`,
+                  }}
+                >
+                  <img
+                    src={product.processedImageUrl}
+                    alt={product.title}
+                    className="w-full h-full object-contain p-4 absolute inset-0 transition-transform duration-300 group-hover:scale-105"
+                  />
+                </div>
+              ) : (
+                <img
+                  src={product["image link"]}
+                  alt={product.title}
+                  className="w-full h-full object-contain p-4 transition-transform duration-300 group-hover:scale-105"
+                />
+              )}
+            </div>
+          </DialogTrigger>
+          <DialogContent className="max-w-4xl w-full h-[80vh]">
+            <DialogHeader>
+              <DialogTitle>{product.title}</DialogTitle>
+            </DialogHeader>
+            <div className="flex items-center justify-center h-full">
+              <img
+                src={product.processedImageUrl || product["image link"]}
+                alt={product.title}
+                className="max-h-full max-w-full object-contain"
+              />
+            </div>
+          </DialogContent>
+        </Dialog>
+
         {processingIndex === index && (
           <div className="absolute inset-0 bg-white/80 backdrop-blur-sm flex items-center justify-center">
             <div className="w-16 h-16 border-4 border-violet-200 border-t-violet-600 rounded-full animate-spin" />

@@ -36,12 +36,17 @@ export const parseFileContent = async (
     console.log("Parsing XML content");
     const parser = new XMLParser({
       ignoreAttributes: false,
-      attributeNamePrefix: "@_",
+      attributeNamePrefix: "",
       parseAttributeValue: true,
       trimValues: true,
-      isArray: (name, jpath, isLeafNode, isAttribute) => {
+      isArray: (name) => {
+        // Ensure these tags are always treated as arrays
         return name === 'item' || name === 'product' || name === 'entry';
-      }
+      },
+      processEntities: true,
+      htmlEntities: true,
+      ignoreDeclaration: true,
+      removeNSPrefix: true // This will remove namespace prefixes like 'g:'
     });
     
     try {
@@ -51,9 +56,10 @@ export const parseFileContent = async (
       // Handle different XML structures
       let products = [];
       
-      // DataFeedWatch specific structure
+      // Google Merchant Feed structure (rss > channel > item)
       if (parsed.rss?.channel?.item) {
         products = parsed.rss.channel.item;
+        console.log("Found Google Merchant Feed structure with", products.length, "items");
       }
       // Generic product structures
       else if (parsed.products?.product) {
@@ -66,8 +72,8 @@ export const parseFileContent = async (
           for (const key in obj) {
             if (Array.isArray(obj[key])) {
               const items = obj[key].filter((item: any) => 
-                item.title || item.name || item.g_title ||
-                item.image_link || item.g_image_link || item.link
+                item.title || item.name || item.id ||
+                item.image_link || item.link || item.description
               );
               if (items.length > 0) return items;
             } else if (typeof obj[key] === 'object' && obj[key] !== null) {
@@ -82,14 +88,22 @@ export const parseFileContent = async (
       
       console.log("Found products array:", products.length, "items");
       
-      const parsedData = products.map((item: any) => ({
-        title: item.title || item.name || item.g_title || "",
-        "image link": item.image_link || item.g_image_link || item.link || item.imageLink || item.image || item["image-url"] || "",
-        product_type: item.product_type || item.g_product_type || item.productType || item.category || "",
-        id: item.id || item.g_id || item.productId || item.sku || "",
-      })).filter(item => item.title && item["image link"]);
+      const parsedData = products.map((item: any) => {
+        // Handle both prefixed (g:title) and unprefixed (title) fields
+        const title = item.title || item.name || "";
+        const imageLink = item.image_link || item.link || item.imageLink || item.image || "";
+        const productType = item.product_type || item.productType || item.category || "";
+        const id = item.id || item.productId || item.sku || "";
+
+        return {
+          title,
+          "image link": imageLink,
+          product_type: productType,
+          id
+        };
+      }).filter(item => item.title && item["image link"]);
       
-      console.log("Parsed XML data:", parsedData);
+      console.log("Successfully parsed", parsedData.length, "products from XML");
       return parsedData;
     } catch (error) {
       console.error("Error parsing XML:", error);

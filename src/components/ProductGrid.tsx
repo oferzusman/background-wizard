@@ -6,6 +6,21 @@ import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
 
 interface ProductGridProps {
   products: ProductData[];
@@ -18,6 +33,8 @@ export const ProductGrid = ({ products, onImageProcessed }: ProductGridProps) =>
   const [opacity, setOpacity] = useState([100]);
   const [selectedProducts, setSelectedProducts] = useState<number[]>([]);
   const [filters, setFilters] = useState<Record<string, string>>({});
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
   
   console.log("Rendering ProductGrid with products:", products);
 
@@ -129,6 +146,17 @@ export const ProductGrid = ({ products, onImageProcessed }: ProductGridProps) =>
     });
   });
 
+  // Pagination calculations
+  const totalPages = Math.ceil(filteredProducts.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const currentProducts = filteredProducts.slice(startIndex, endIndex);
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   if (products.length === 0) {
     return null;
   }
@@ -144,20 +172,40 @@ export const ProductGrid = ({ products, onImageProcessed }: ProductGridProps) =>
             ? "Deselect All"
             : "Select All"}
         </Button>
-        <div className="space-x-2">
-          <input
-            type="color"
-            value={selectedColor}
-            onChange={(e) => setSelectedColor(e.target.value)}
-            className="w-8 h-8 cursor-pointer"
-          />
-          <Slider
-            value={opacity}
-            onValueChange={setOpacity}
-            max={100}
-            step={1}
-            className="w-32 inline-block align-middle ml-2"
-          />
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
+            <Select
+              value={itemsPerPage.toString()}
+              onValueChange={(value) => {
+                setItemsPerPage(Number(value));
+                setCurrentPage(1);
+              }}
+            >
+              <SelectTrigger className="w-[140px]">
+                <SelectValue placeholder="Items per page" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="10">10 per page</SelectItem>
+                <SelectItem value="50">50 per page</SelectItem>
+                <SelectItem value="100">100 per page</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-x-2">
+            <input
+              type="color"
+              value={selectedColor}
+              onChange={(e) => setSelectedColor(e.target.value)}
+              className="w-8 h-8 cursor-pointer"
+            />
+            <Slider
+              value={opacity}
+              onValueChange={setOpacity}
+              max={100}
+              step={1}
+              className="w-32 inline-block align-middle ml-2"
+            />
+          </div>
         </div>
       </div>
 
@@ -168,14 +216,14 @@ export const ProductGrid = ({ products, onImageProcessed }: ProductGridProps) =>
       />
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-        {filteredProducts.map((product, index) => (
+        {currentProducts.map((product, index) => (
           <ProductCard
-            key={index}
+            key={startIndex + index}
             product={product}
-            index={index}
+            index={startIndex + index}
             onImageProcessed={onImageProcessed}
             onSelect={handleSelectProduct}
-            isSelected={selectedProducts.includes(index)}
+            isSelected={selectedProducts.includes(startIndex + index)}
             processingIndex={processingIndex}
             selectedColor={selectedColor}
             opacity={opacity}
@@ -185,6 +233,38 @@ export const ProductGrid = ({ products, onImageProcessed }: ProductGridProps) =>
           />
         ))}
       </div>
+
+      {totalPages > 1 && (
+        <Pagination className="my-8">
+          <PaginationContent>
+            <PaginationItem>
+              <PaginationPrevious 
+                onClick={() => handlePageChange(currentPage - 1)}
+                className={currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+              />
+            </PaginationItem>
+            
+            {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+              <PaginationItem key={page}>
+                <PaginationLink
+                  onClick={() => handlePageChange(page)}
+                  isActive={currentPage === page}
+                  className="cursor-pointer"
+                >
+                  {page}
+                </PaginationLink>
+              </PaginationItem>
+            ))}
+            
+            <PaginationItem>
+              <PaginationNext
+                onClick={() => handlePageChange(currentPage + 1)}
+                className={currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
+              />
+            </PaginationItem>
+          </PaginationContent>
+        </Pagination>
+      )}
     </div>
   );
 };

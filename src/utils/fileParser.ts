@@ -40,20 +40,19 @@ export const parseFileContent = async (
       parseAttributeValue: true,
       trimValues: true,
       isArray: (name) => {
-        // Ensure these tags are always treated as arrays
         return name === 'item' || name === 'product' || name === 'entry';
       },
       processEntities: true,
       htmlEntities: true,
       ignoreDeclaration: true,
-      removeNSPrefix: true // This will remove namespace prefixes like 'g:'
+      removeNSPrefix: true,
+      textNodeName: "_text"
     });
     
     try {
       const parsed = parser.parse(content);
       console.log("Raw XML parse result:", parsed);
       
-      // Handle different XML structures
       let products = [];
       
       // Google Merchant Feed structure (rss > channel > item)
@@ -89,11 +88,18 @@ export const parseFileContent = async (
       console.log("Found products array:", products.length, "items");
       
       const parsedData = products.map((item: any) => {
-        // Handle both prefixed (g:title) and unprefixed (title) fields
+        // Handle Google Merchant feed fields (with g: prefix already removed)
         const title = item.title || item.name || "";
         const imageLink = item.image_link || item.link || item.imageLink || item.image || "";
-        const productType = item.product_type || item.productType || item.category || "";
+        const productType = item.google_product_category || item.product_type || item.productType || item.category || "";
         const id = item.id || item.productId || item.sku || "";
+
+        console.log("Processing item:", {
+          originalTitle: item.title,
+          originalImageLink: item.image_link,
+          mappedTitle: title,
+          mappedImageLink: imageLink
+        });
 
         return {
           title,
@@ -101,7 +107,13 @@ export const parseFileContent = async (
           product_type: productType,
           id
         };
-      }).filter(item => item.title && item["image link"]);
+      }).filter(item => {
+        const isValid = item.title && item["image link"];
+        if (!isValid) {
+          console.log("Filtered out invalid item:", item);
+        }
+        return isValid;
+      });
       
       console.log("Successfully parsed", parsedData.length, "products from XML");
       return parsedData;

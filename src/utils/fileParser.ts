@@ -37,6 +37,8 @@ export const parseFileContent = async (
     const parser = new XMLParser({
       ignoreAttributes: false,
       attributeNamePrefix: "@_",
+      parseAttributeValue: true,
+      trimValues: true,
     });
     
     try {
@@ -51,13 +53,20 @@ export const parseFileContent = async (
           : [parsed.products.product];
       } else if (parsed.feed?.entry) {
         products = parsed.feed.entry;
+      } else if (parsed.rss?.channel?.item) {
+        products = Array.isArray(parsed.rss.channel.item)
+          ? parsed.rss.channel.item
+          : [parsed.rss.channel.item];
       } else {
         // Try to find a products array in the parsed object
         const findProducts = (obj: any): any[] => {
           for (const key in obj) {
             if (Array.isArray(obj[key])) {
-              return obj[key];
-            } else if (typeof obj[key] === 'object') {
+              const items = obj[key].filter((item: any) => 
+                item.title || item.name || item["image-url"] || item.image_link
+              );
+              if (items.length > 0) return items;
+            } else if (typeof obj[key] === 'object' && obj[key] !== null) {
               const result = findProducts(obj[key]);
               if (result.length > 0) return result;
             }
@@ -70,11 +79,11 @@ export const parseFileContent = async (
       console.log("Found products array:", products.length, "items");
       
       const parsedData = products.map((item: any) => ({
-        title: item.title || item.name,
-        "image link": item.image_link || item.imageLink || item.image || item["image-url"],
-        product_type: item.product_type || item.productType || item.category,
-        id: item.id || item.productId || item.sku,
-      }));
+        title: item.title || item.name || "",
+        "image link": item.image_link || item.imageLink || item.image || item["image-url"] || "",
+        product_type: item.product_type || item.productType || item.category || "",
+        id: item.id || item.productId || item.sku || "",
+      })).filter(item => item.title && item["image link"]);
       
       console.log("Parsed XML data:", parsedData);
       return parsedData;

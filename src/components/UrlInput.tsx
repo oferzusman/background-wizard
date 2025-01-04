@@ -31,8 +31,11 @@ export const UrlInput = ({ onDataParsed }: UrlInputProps) => {
       const fileType = url.split(".").pop()?.toLowerCase() || "xml";
       console.log("Detected file type:", fileType);
       
-      if (!["csv", "tsv", "xml"].includes(fileType)) {
-        throw new Error(`Unsupported file type: ${fileType}. Please use CSV, TSV, or XML files.`);
+      // Remove the dot from the extension if present
+      const cleanFileType = fileType.replace('.', '');
+      
+      if (!["csv", "tsv", "xml"].includes(cleanFileType)) {
+        throw new Error(`Unsupported file type: ${cleanFileType}. Please use CSV, TSV, or XML files.`);
       }
 
       // Store in file history
@@ -40,7 +43,7 @@ export const UrlInput = ({ onDataParsed }: UrlInputProps) => {
         .from("file_history")
         .insert({
           file_url: url,
-          file_type: fileType,
+          file_type: cleanFileType,
           is_url: true,
           status: "completed",
         });
@@ -50,7 +53,7 @@ export const UrlInput = ({ onDataParsed }: UrlInputProps) => {
         throw historyError;
       }
 
-      const parsedData = await parseFileContent(content, fileType);
+      const parsedData = await parseFileContent(content, cleanFileType);
       console.log("Successfully parsed data:", parsedData.length, "items");
       
       onDataParsed(parsedData);

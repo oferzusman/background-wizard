@@ -16,7 +16,7 @@ export const parseFileContent = async (
         header: true,
         complete: (results) => {
           const parsedData = results.data
-            .filter((item: any) => item.title && item["image link"]) // Filter out empty rows
+            .filter((item: any) => item.title && item["image link"])
             .map((item: any) => ({
               title: item.title,
               "image link": item["image link"],
@@ -39,6 +39,9 @@ export const parseFileContent = async (
       attributeNamePrefix: "@_",
       parseAttributeValue: true,
       trimValues: true,
+      isArray: (name, jpath, isLeafNode, isAttribute) => {
+        return name === 'item' || name === 'product' || name === 'entry';
+      }
     });
     
     try {
@@ -47,23 +50,24 @@ export const parseFileContent = async (
       
       // Handle different XML structures
       let products = [];
-      if (parsed.products?.product) {
-        products = Array.isArray(parsed.products.product) 
-          ? parsed.products.product 
-          : [parsed.products.product];
+      
+      // DataFeedWatch specific structure
+      if (parsed.rss?.channel?.item) {
+        products = parsed.rss.channel.item;
+      }
+      // Generic product structures
+      else if (parsed.products?.product) {
+        products = parsed.products.product;
       } else if (parsed.feed?.entry) {
         products = parsed.feed.entry;
-      } else if (parsed.rss?.channel?.item) {
-        products = Array.isArray(parsed.rss.channel.item)
-          ? parsed.rss.channel.item
-          : [parsed.rss.channel.item];
       } else {
         // Try to find a products array in the parsed object
         const findProducts = (obj: any): any[] => {
           for (const key in obj) {
             if (Array.isArray(obj[key])) {
               const items = obj[key].filter((item: any) => 
-                item.title || item.name || item["image-url"] || item.image_link
+                item.title || item.name || item.g_title ||
+                item.image_link || item.g_image_link || item.link
               );
               if (items.length > 0) return items;
             } else if (typeof obj[key] === 'object' && obj[key] !== null) {
@@ -79,10 +83,10 @@ export const parseFileContent = async (
       console.log("Found products array:", products.length, "items");
       
       const parsedData = products.map((item: any) => ({
-        title: item.title || item.name || "",
-        "image link": item.image_link || item.imageLink || item.image || item["image-url"] || "",
-        product_type: item.product_type || item.productType || item.category || "",
-        id: item.id || item.productId || item.sku || "",
+        title: item.title || item.name || item.g_title || "",
+        "image link": item.image_link || item.g_image_link || item.link || item.imageLink || item.image || item["image-url"] || "",
+        product_type: item.product_type || item.g_product_type || item.productType || item.category || "",
+        id: item.id || item.g_id || item.productId || item.sku || "",
       })).filter(item => item.title && item["image link"]);
       
       console.log("Parsed XML data:", parsedData);

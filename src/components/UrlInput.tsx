@@ -25,25 +25,21 @@ export const UrlInput = ({ onDataParsed }: UrlInputProps) => {
       }
       
       const content = await response.text();
-      console.log("Received content from URL");
+      console.log("Received content length:", content.length);
       
-      // Extract file type from URL, defaulting to xml if no extension found
-      const fileType = url.split(".").pop()?.toLowerCase() || "xml";
+      // For XML feeds, don't rely on extension
+      const fileType = url.toLowerCase().includes('xml') || content.trim().startsWith('<?xml') ? 'xml' : 
+                      url.toLowerCase().endsWith('csv') ? 'csv' : 
+                      url.toLowerCase().endsWith('tsv') ? 'tsv' : 'xml';
+      
       console.log("Detected file type:", fileType);
-      
-      // Remove the dot from the extension if present
-      const cleanFileType = fileType.replace('.', '');
-      
-      if (!["csv", "tsv", "xml"].includes(cleanFileType)) {
-        throw new Error(`Unsupported file type: ${cleanFileType}. Please use CSV, TSV, or XML files.`);
-      }
 
       // Store in file history
       const { error: historyError } = await supabase
         .from("file_history")
         .insert({
           file_url: url,
-          file_type: cleanFileType,
+          file_type: fileType,
           is_url: true,
           status: "completed",
         });
@@ -53,7 +49,7 @@ export const UrlInput = ({ onDataParsed }: UrlInputProps) => {
         throw historyError;
       }
 
-      const parsedData = await parseFileContent(content, cleanFileType);
+      const parsedData = await parseFileContent(content, fileType);
       console.log("Successfully parsed data:", parsedData.length, "items");
       
       onDataParsed(parsedData);

@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { ProductCard } from "./ProductCard";
 import { ProductData } from "./FileUpload";
-import { ProductFilters } from "./ProductFilters";
 import { ImageControlsSidebar } from "./ImageControlsSidebar";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { toast } from "sonner";
@@ -152,26 +151,20 @@ export const ProductGrid = ({ products, onImageProcessed }: ProductGridProps) =>
   return (
     <SidebarProvider>
       <div className="flex min-h-screen w-full">
-        <div className="flex flex-col w-80 border-r">
-          <div className="border-b">
-            <ProductFilters
-              onFilterChange={handleFilterChange}
-              products={products}
-              filteredCount={filteredProducts.length}
-            />
-          </div>
-          <ImageControlsSidebar
-            selectedColor={selectedColor}
-            setSelectedColor={setSelectedColor}
-            opacity={opacity}
-            setOpacity={setOpacity}
-            gradientPresets={gradientPresets}
-            onBackgroundImageSelect={(file) => {
-              const url = URL.createObjectURL(file);
-              setSelectedColor(`url(${url})`);
-            }}
-          />
-        </div>
+        <ImageControlsSidebar
+          selectedColor={selectedColor}
+          setSelectedColor={setSelectedColor}
+          opacity={opacity}
+          setOpacity={setOpacity}
+          gradientPresets={gradientPresets}
+          onBackgroundImageSelect={(file) => {
+            const url = URL.createObjectURL(file);
+            setSelectedColor(`url(${url})`);
+          }}
+          onFilterChange={handleFilterChange}
+          products={products}
+          filteredCount={filteredProducts.length}
+        />
         <div className="flex-1 p-6 overflow-auto">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {filteredProducts.map((product, index) => (

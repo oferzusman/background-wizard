@@ -5,6 +5,7 @@ import { ProductFilters } from "./ProductFilters";
 import { ImageControlsSidebar } from "./ImageControlsSidebar";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 interface ProductGridProps {
   products: ProductData[];
@@ -39,23 +40,23 @@ export const ProductGrid = ({ products, onImageProcessed }: ProductGridProps) =>
       const imageUrl = products[index]["image link"];
       console.log("Image URL:", imageUrl);
 
-      const result = await fetch('https://kxyoayirtfroywgbecwx.supabase.co/functions/v1/remove-background', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ imageUrl }),
+      const { data, error } = await supabase.functions.invoke('remove-background', {
+        body: { imageUrl },
       });
 
-      if (!result.ok) {
-        const errorText = await result.text();
-        console.error("Error response from API:", errorText);
-        throw new Error(`Failed to remove background: ${errorText}`);
+      if (error) {
+        console.error("Error response from API:", error);
+        throw new Error(`Failed to remove background: ${error.message}`);
+      }
+
+      if (!data) {
+        throw new Error('No data received from the background removal service');
       }
 
       console.log("Successfully received response from API");
-      const processedBlob = await result.blob();
-      const processedUrl = URL.createObjectURL(processedBlob);
+      const processedUrl = URL.createObjectURL(
+        new Blob([Buffer.from(data)], { type: 'image/png' })
+      );
       
       console.log("Processing complete, updating image");
       onImageProcessed(index, processedUrl);

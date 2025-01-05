@@ -37,26 +37,36 @@ export const ProductGrid = ({ products, onImageProcessed }: ProductGridProps) =>
       setProcessingIndex(index);
       console.log("Starting background removal for product:", products[index]);
       
-      const img = new Image();
-      img.crossOrigin = "anonymous";
+      const imageUrl = products[index]["image link"];
+      console.log("Image URL:", imageUrl);
+
+      // Create a FormData object to send the image
+      const formData = new FormData();
       
-      // Create a promise that will resolve when the image loads or reject if there's an error
-      await new Promise((resolve, reject) => {
-        img.onload = resolve;
-        img.onerror = (error) => {
-          console.error("Error loading image:", error);
-          reject(new Error("Failed to load image"));
-        };
-        // Add a proxy URL to handle CORS issues
-        const imageUrl = products[index]["image link"];
-        img.src = `https://cors-anywhere.herokuapp.com/${imageUrl}`;
+      // Fetch the image and convert it to a blob
+      const response = await fetch(imageUrl);
+      const blob = await response.blob();
+      
+      // Append the image blob to the FormData
+      formData.append('image', blob, 'image.png');
+
+      console.log("Sending request to remove-background function");
+      const result = await fetch('https://kxyoayirtfroywgbecwx.supabase.co/functions/v1/remove-background', {
+        method: 'POST',
+        body: formData,
       });
 
-      console.log("Image loaded successfully, starting background removal");
-      const processedBlob = await removeBackground(img);
-      console.log("Background removed successfully, creating URL");
-      
+      if (!result.ok) {
+        const errorText = await result.text();
+        console.error("Error response from API:", errorText);
+        throw new Error(`Failed to remove background: ${errorText}`);
+      }
+
+      console.log("Successfully received response from API");
+      const processedBlob = await result.blob();
       const processedUrl = URL.createObjectURL(processedBlob);
+      
+      console.log("Processing complete, updating image");
       onImageProcessed(index, processedUrl);
       toast.success("Background removed successfully!");
     } catch (error) {

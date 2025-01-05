@@ -132,20 +132,22 @@ export const ProductCard = ({
           <p className="text-sm text-slate-500 text-center">ID: {product.id}</p>
         )}
 
-        <ProductActions
-          hasProcessedImage={!!product.processedImageUrl}
-          isProcessing={processingIndex === index}
-          onRemoveBackground={() => handleRemoveBackground(index)}
-          onDownloadOriginal={() => handleDownloadOriginal(product.processedImageUrl!, product.title)}
-          onDownloadWithBackground={() =>
-            handleDownloadWithBackground(
-              product.processedImageUrl!,
-              product.title,
-              selectedColor,
-              opacity[0]
-            )
-          }
-        />
+        <div className="flex flex-col gap-2">
+          <ProductActions
+            hasProcessedImage={!!product.processedImageUrl}
+            isProcessing={processingIndex === index}
+            onRemoveBackground={() => handleRemoveBackground(index)}
+            onDownloadOriginal={() => handleDownloadOriginal(product.processedImageUrl!, product.title)}
+            onDownloadWithBackground={() =>
+              handleDownloadWithBackground(
+                product.processedImageUrl!,
+                product.title,
+                selectedColor,
+                opacity[0]
+              )
+            }
+          />
+        </div>
       </div>
     </motion.div>
   );

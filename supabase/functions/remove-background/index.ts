@@ -17,17 +17,27 @@ serve(async (req) => {
       throw new Error('Missing Stability API key');
     }
 
-    // Get the form data from the request
-    const formData = await req.formData();
-    const imageFile = formData.get('image');
-    
-    if (!imageFile || !(imageFile instanceof File)) {
-      throw new Error('No image file provided');
+    // Get the request body
+    const body = await req.json();
+    const imageUrl = body.imageUrl;
+
+    if (!imageUrl) {
+      throw new Error('No image URL provided');
     }
 
-    console.log('Received image, sending to Stability AI...');
+    console.log('Fetching image from URL:', imageUrl);
 
-    // Forward the image to Stability AI
+    // Fetch the image ourselves to avoid CORS issues
+    const imageResponse = await fetch(imageUrl);
+    if (!imageResponse.ok) {
+      throw new Error('Failed to fetch image from URL');
+    }
+
+    const imageBlob = await imageResponse.blob();
+    const formData = new FormData();
+    formData.append('image', imageBlob, 'image.png');
+
+    console.log('Sending image to Stability AI...');
     const stabilityResponse = await fetch(
       'https://api.stability.ai/v2beta/stable-image/edit/remove-background',
       {

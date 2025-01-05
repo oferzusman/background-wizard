@@ -4,7 +4,6 @@ import { ProductData } from "./FileUpload";
 import { ProductFilters } from "./ProductFilters";
 import { ImageControlsSidebar } from "./ImageControlsSidebar";
 import { SidebarProvider } from "@/components/ui/sidebar";
-import { removeBackground } from "@/lib/imageProcessing";
 import { toast } from "sonner";
 
 interface ProductGridProps {
@@ -40,20 +39,12 @@ export const ProductGrid = ({ products, onImageProcessed }: ProductGridProps) =>
       const imageUrl = products[index]["image link"];
       console.log("Image URL:", imageUrl);
 
-      // Create a FormData object to send the image
-      const formData = new FormData();
-      
-      // Fetch the image and convert it to a blob
-      const response = await fetch(imageUrl);
-      const blob = await response.blob();
-      
-      // Append the image blob to the FormData
-      formData.append('image', blob, 'image.png');
-
-      console.log("Sending request to remove-background function");
       const result = await fetch('https://kxyoayirtfroywgbecwx.supabase.co/functions/v1/remove-background', {
         method: 'POST',
-        body: formData,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ imageUrl }),
       });
 
       if (!result.ok) {

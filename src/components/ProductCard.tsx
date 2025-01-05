@@ -1,16 +1,11 @@
 import { useState } from "react";
 import { ProductData } from "./FileUpload";
-import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { motion } from "framer-motion";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import { Download, Eraser, Image, X } from "lucide-react";
+import { DialogTrigger } from "@/components/ui/dialog";
+import { Eraser } from "lucide-react";
+import { ProductImageDialog } from "./ProductImageDialog";
+import { ProductActions } from "./ProductActions";
 
 interface ProductCardProps {
   product: ProductData;
@@ -34,7 +29,6 @@ interface ProductCardProps {
 export const ProductCard = ({
   product,
   index,
-  onImageProcessed,
   onSelect,
   isSelected,
   processingIndex,
@@ -87,51 +81,36 @@ export const ProductCard = ({
           </div>
         )}
 
-        <Dialog open={isImageDialogOpen} onOpenChange={setIsImageDialogOpen}>
-          <DialogTrigger asChild>
-            <div className="w-full h-full cursor-pointer">
-              {product.processedImageUrl ? (
-                <div
-                  className="w-full h-full relative"
-                  style={getBackgroundStyle()}
-                >
-                  <img
-                    src={product.processedImageUrl}
-                    alt={product.title}
-                    className="w-full h-full object-contain p-4 absolute inset-0 transition-transform duration-300 group-hover:scale-105"
-                  />
-                </div>
-              ) : (
-                <img
-                  src={product["image link"]}
-                  alt={product.title}
-                  className="w-full h-full object-contain p-4 transition-transform duration-300 group-hover:scale-105"
-                />
-              )}
-            </div>
-          </DialogTrigger>
-          <DialogContent className="max-w-[95vw] max-h-[95vh] w-auto h-auto p-0">
-            <div className="relative">
-              <button
-                onClick={() => setIsImageDialogOpen(false)}
-                className="absolute right-2 top-2 z-50 p-2 rounded-full bg-black/50 hover:bg-black/70 transition-colors"
-              >
-                <X className="h-4 w-4 text-white" />
-              </button>
-              <div 
-                className="w-full h-full"
-                style={product.processedImageUrl ? getBackgroundStyle() : {}}
+        <DialogTrigger asChild onClick={() => setIsImageDialogOpen(true)}>
+          <div className="w-full h-full cursor-pointer">
+            {product.processedImageUrl ? (
+              <div
+                className="w-full h-full relative"
+                style={getBackgroundStyle()}
               >
                 <img
-                  src={product.processedImageUrl || product["image link"]}
+                  src={product.processedImageUrl}
                   alt={product.title}
-                  className="w-full h-full object-contain"
-                  style={{ maxHeight: "95vh" }}
+                  className="w-full h-full object-contain p-4 absolute inset-0 transition-transform duration-300 group-hover:scale-105"
                 />
               </div>
-            </div>
-          </DialogContent>
-        </Dialog>
+            ) : (
+              <img
+                src={product["image link"]}
+                alt={product.title}
+                className="w-full h-full object-contain p-4 transition-transform duration-300 group-hover:scale-105"
+              />
+            )}
+          </div>
+        </DialogTrigger>
+
+        <ProductImageDialog
+          isOpen={isImageDialogOpen}
+          onOpenChange={setIsImageDialogOpen}
+          product={product}
+          selectedColor={selectedColor}
+          opacity={opacity}
+        />
 
         {processingIndex === index && (
           <div className="absolute inset-0 bg-white/80 backdrop-blur-sm flex items-center justify-center">
@@ -151,60 +130,20 @@ export const ProductCard = ({
           <p className="text-sm text-slate-500 text-center">ID: {product.id}</p>
         )}
 
-        <div className="flex gap-2 justify-center">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => handleRemoveBackground(index)}
-            disabled={processingIndex === index}
-            className="group"
-          >
-            <Eraser className="w-4 h-4 mr-2 text-slate-500 group-hover:text-violet-600" />
-            Remove Background
-          </Button>
-          {product.processedImageUrl && (
-            <Dialog>
-              <DialogTrigger asChild>
-                <Button variant="outline" size="sm" className="group">
-                  <Download className="w-4 h-4 mr-2 text-slate-500 group-hover:text-violet-600" />
-                  Download
-                </Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Choose Download Option</DialogTitle>
-                </DialogHeader>
-                <div className="flex flex-col gap-4 pt-4">
-                  <Button
-                    onClick={() =>
-                      handleDownloadOriginal(product.processedImageUrl!, product.title)
-                    }
-                    variant="outline"
-                    className="group"
-                  >
-                    <Image className="w-4 h-4 mr-2 text-slate-500 group-hover:text-violet-600" />
-                    Download with Transparent Background
-                  </Button>
-                  <Button
-                    onClick={() =>
-                      handleDownloadWithBackground(
-                        product.processedImageUrl!,
-                        product.title,
-                        selectedColor,
-                        opacity[0]
-                      )
-                    }
-                    variant="default"
-                    className="bg-violet-600 hover:bg-violet-700"
-                  >
-                    <Image className="w-4 h-4 mr-2" />
-                    Download with Custom Background
-                  </Button>
-                </div>
-              </DialogContent>
-            </Dialog>
-          )}
-        </div>
+        <ProductActions
+          hasProcessedImage={!!product.processedImageUrl}
+          isProcessing={processingIndex === index}
+          onRemoveBackground={() => handleRemoveBackground(index)}
+          onDownloadOriginal={() => handleDownloadOriginal(product.processedImageUrl!, product.title)}
+          onDownloadWithBackground={() =>
+            handleDownloadWithBackground(
+              product.processedImageUrl!,
+              product.title,
+              selectedColor,
+              opacity[0]
+            )
+          }
+        />
       </div>
     </motion.div>
   );

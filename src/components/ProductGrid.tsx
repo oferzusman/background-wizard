@@ -47,7 +47,9 @@ export const ProductGrid = ({ products, onImageProcessed }: ProductGridProps) =>
           console.error("Error loading image:", error);
           reject(new Error("Failed to load image"));
         };
-        img.src = products[index]["image link"];
+        // Add a proxy URL to handle CORS issues
+        const imageUrl = products[index]["image link"];
+        img.src = `https://cors-anywhere.herokuapp.com/${imageUrl}`;
       });
 
       console.log("Image loaded successfully, starting background removal");

@@ -54,9 +54,15 @@ export const ProductGrid = ({ products, onImageProcessed }: ProductGridProps) =>
       }
 
       console.log("Successfully received response from API");
-      const processedUrl = URL.createObjectURL(
-        new Blob([Buffer.from(data)], { type: 'image/png' })
-      );
+      
+      // Convert base64 string to blob
+      const binaryData = atob(data);
+      const bytes = new Uint8Array(binaryData.length);
+      for (let i = 0; i < binaryData.length; i++) {
+        bytes[i] = binaryData.charCodeAt(i);
+      }
+      const blob = new Blob([bytes], { type: 'image/png' });
+      const processedUrl = URL.createObjectURL(blob);
       
       console.log("Processing complete, updating image");
       onImageProcessed(index, processedUrl);

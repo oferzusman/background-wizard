@@ -2,7 +2,7 @@ import { useState } from "react";
 import { ProductData } from "./FileUpload";
 import { Checkbox } from "@/components/ui/checkbox";
 import { motion } from "framer-motion";
-import { DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogTrigger } from "@/components/ui/dialog";
 import { Eraser } from "lucide-react";
 import { ProductImageDialog } from "./ProductImageDialog";
 import { ProductActions } from "./ProductActions";
@@ -81,36 +81,38 @@ export const ProductCard = ({
           </div>
         )}
 
-        <DialogTrigger asChild onClick={() => setIsImageDialogOpen(true)}>
-          <div className="w-full h-full cursor-pointer">
-            {product.processedImageUrl ? (
-              <div
-                className="w-full h-full relative"
-                style={getBackgroundStyle()}
-              >
+        <Dialog open={isImageDialogOpen} onOpenChange={setIsImageDialogOpen}>
+          <DialogTrigger asChild>
+            <div className="w-full h-full cursor-pointer">
+              {product.processedImageUrl ? (
+                <div
+                  className="w-full h-full relative"
+                  style={getBackgroundStyle()}
+                >
+                  <img
+                    src={product.processedImageUrl}
+                    alt={product.title}
+                    className="w-full h-full object-contain p-4 absolute inset-0 transition-transform duration-300 group-hover:scale-105"
+                  />
+                </div>
+              ) : (
                 <img
-                  src={product.processedImageUrl}
+                  src={product["image link"]}
                   alt={product.title}
-                  className="w-full h-full object-contain p-4 absolute inset-0 transition-transform duration-300 group-hover:scale-105"
+                  className="w-full h-full object-contain p-4 transition-transform duration-300 group-hover:scale-105"
                 />
-              </div>
-            ) : (
-              <img
-                src={product["image link"]}
-                alt={product.title}
-                className="w-full h-full object-contain p-4 transition-transform duration-300 group-hover:scale-105"
-              />
-            )}
-          </div>
-        </DialogTrigger>
+              )}
+            </div>
+          </DialogTrigger>
 
-        <ProductImageDialog
-          isOpen={isImageDialogOpen}
-          onOpenChange={setIsImageDialogOpen}
-          product={product}
-          selectedColor={selectedColor}
-          opacity={opacity}
-        />
+          <ProductImageDialog
+            isOpen={isImageDialogOpen}
+            onOpenChange={setIsImageDialogOpen}
+            product={product}
+            selectedColor={selectedColor}
+            opacity={opacity}
+          />
+        </Dialog>
 
         {processingIndex === index && (
           <div className="absolute inset-0 bg-white/80 backdrop-blur-sm flex items-center justify-center">

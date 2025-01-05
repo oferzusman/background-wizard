@@ -44,7 +44,7 @@ serve(async (req) => {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${STABILITY_API_KEY}`,
-          'Accept': 'image/*',  // Changed this line to match expected header
+          'Accept': 'image/*',
         },
         body: formData,
       }
@@ -58,13 +58,21 @@ serve(async (req) => {
 
     console.log('Successfully processed image with Stability AI');
     const processedImageBuffer = await stabilityResponse.arrayBuffer();
+    
+    // Convert ArrayBuffer to base64
+    const uint8Array = new Uint8Array(processedImageBuffer);
+    const binary = uint8Array.reduce((acc, byte) => acc + String.fromCharCode(byte), '');
+    const base64 = btoa(binary);
 
-    return new Response(processedImageBuffer, {
-      headers: {
-        ...corsHeaders,
-        'Content-Type': 'image/png',
-      },
-    });
+    return new Response(
+      JSON.stringify({ data: base64 }),
+      {
+        headers: {
+          ...corsHeaders,
+          'Content-Type': 'application/json',
+        },
+      }
+    );
   } catch (error) {
     console.error('Error in remove-background function:', error);
     return new Response(

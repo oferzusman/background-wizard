@@ -31,6 +31,19 @@ function resizeImageIfNeeded(canvas: HTMLCanvasElement, ctx: CanvasRenderingCont
   return false;
 }
 
+const proxyImage = async (imageUrl: string): Promise<string> => {
+  try {
+    // Use a CORS proxy to fetch the image
+    const response = await fetch(`https://api.allorigins.win/raw?url=${encodeURIComponent(imageUrl)}`);
+    if (!response.ok) throw new Error('Failed to fetch image through proxy');
+    const blob = await response.blob();
+    return URL.createObjectURL(blob);
+  } catch (error) {
+    console.error('Error proxying image:', error);
+    throw error;
+  }
+};
+
 export const removeBackground = async (imageElement: HTMLImageElement): Promise<Blob> => {
   try {
     console.log('Starting background removal process...');

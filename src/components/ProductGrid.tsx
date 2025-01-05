@@ -39,14 +39,25 @@ export const ProductGrid = ({ products, onImageProcessed }: ProductGridProps) =>
       
       const img = new Image();
       img.crossOrigin = "anonymous";
-      img.src = products[index]["image link"];
       
+      // Create a promise that will resolve when the image loads or reject if there's an error
       await new Promise((resolve, reject) => {
         img.onload = resolve;
         img.onerror = (error) => {
           console.error("Error loading image:", error);
           reject(new Error("Failed to load image"));
         };
+        
+        // Try to load the image through a CORS proxy
+        fetch(`https://api.allorigins.win/raw?url=${encodeURIComponent(products[index]["image link"])}`)
+          .then(response => response.blob())
+          .then(blob => {
+            img.src = URL.createObjectURL(blob);
+          })
+          .catch(error => {
+            console.error("Error fetching image through proxy:", error);
+            reject(error);
+          });
       });
 
       console.log("Image loaded successfully, starting background removal");

@@ -46,6 +46,22 @@ export const ProductCard = ({
 }: ProductCardProps) => {
   const [isImageDialogOpen, setIsImageDialogOpen] = useState(false);
 
+  const getBackgroundStyle = () => {
+    if (!product.processedImageUrl) return {};
+    
+    if (selectedColor.includes('gradient')) {
+      return {
+        background: selectedColor,
+      };
+    }
+    
+    return {
+      backgroundColor: `${selectedColor}${Math.round(opacity[0] * 2.55)
+        .toString(16)
+        .padStart(2, "0")}`,
+    };
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0, scale: 0.95 }}
@@ -77,11 +93,7 @@ export const ProductCard = ({
               {product.processedImageUrl ? (
                 <div
                   className="w-full h-full relative"
-                  style={{
-                    backgroundColor: `${selectedColor}${Math.round(opacity[0] * 2.55)
-                      .toString(16)
-                      .padStart(2, "0")}`,
-                  }}
+                  style={getBackgroundStyle()}
                 >
                   <img
                     src={product.processedImageUrl}
@@ -106,12 +118,17 @@ export const ProductCard = ({
               >
                 <X className="h-4 w-4 text-white" />
               </button>
-              <img
-                src={product.processedImageUrl || product["image link"]}
-                alt={product.title}
-                className="w-full h-full object-contain"
-                style={{ maxHeight: "95vh" }}
-              />
+              <div 
+                className="w-full h-full"
+                style={product.processedImageUrl ? getBackgroundStyle() : {}}
+              >
+                <img
+                  src={product.processedImageUrl || product["image link"]}
+                  alt={product.title}
+                  className="w-full h-full object-contain"
+                  style={{ maxHeight: "95vh" }}
+                />
+              </div>
             </div>
           </DialogContent>
         </Dialog>

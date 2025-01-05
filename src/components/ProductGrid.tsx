@@ -1,71 +1,58 @@
 import { useState } from "react";
-import { ProductData } from "./FileUpload";
 import { ProductCard } from "./ProductCard";
+import { ProductData } from "./FileUpload";
 import { ProductFilters } from "./ProductFilters";
-import { Button } from "@/components/ui/button";
-import { Slider } from "@/components/ui/slider";
+import { ImageControlsSidebar } from "./ImageControlsSidebar";
+import { SidebarProvider } from "@/components/ui/sidebar";
+import { removeBackground } from "@/lib/imageProcessing";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  Pagination,
-  PaginationContent,
-  PaginationItem,
-  PaginationLink,
-  PaginationNext,
-  PaginationPrevious,
-} from "@/components/ui/pagination";
 
 interface ProductGridProps {
   products: ProductData[];
   onImageProcessed: (index: number, newImageUrl: string) => void;
 }
 
+const gradientPresets = [
+  "linear-gradient(to right, #ee9ca7, #ffdde1)",
+  "linear-gradient(to right, #2193b0, #6dd5ed)",
+  "linear-gradient(to right, #c6ffdd, #fbd786, #f7797d)",
+  "linear-gradient(to right, #00b4db, #0083b0)",
+];
+
 export const ProductGrid = ({ products, onImageProcessed }: ProductGridProps) => {
+  const [selectedProducts, setSelectedProducts] = useState<number[]>([]);
   const [processingIndex, setProcessingIndex] = useState<number | null>(null);
   const [selectedColor, setSelectedColor] = useState("#ffffff");
   const [opacity, setOpacity] = useState([100]);
-  const [selectedProducts, setSelectedProducts] = useState<number[]>([]);
   const [filters, setFilters] = useState<Record<string, string>>({});
-  const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(10);
-  
-  console.log("Rendering ProductGrid with products:", products);
+
+  const handleSelect = (index: number, selected: boolean) => {
+    setSelectedProducts((prev) =>
+      selected
+        ? [...prev, index]
+        : prev.filter((i) => i !== index)
+    );
+  };
 
   const handleRemoveBackground = async (index: number) => {
-    setProcessingIndex(index);
-    const product = products[index];
-    
     try {
-      console.log('Starting background removal for:', product.title);
+      setProcessingIndex(index);
+      const img = new Image();
+      img.crossOrigin = "anonymous";
+      img.src = products[index]["image link"];
       
-      const { data, error } = await supabase.functions.invoke('remove-background', {
-        body: { imageUrl: product["image link"] }
+      await new Promise((resolve, reject) => {
+        img.onload = resolve;
+        img.onerror = reject;
       });
 
-      if (error) {
-        console.error("Supabase function error:", error);
-        throw error;
-      }
-
-      if (!data?.processedUrl) {
-        throw new Error("No processed image URL returned");
-      }
-
-      console.log('Successfully processed image for:', product.title);
-      
-      onImageProcessed(index, data.processedUrl);
-      
+      const processedBlob = await removeBackground(img);
+      const processedUrl = URL.createObjectURL(processedBlob);
+      onImageProcessed(index, processedUrl);
       toast.success("Background removed successfully!");
     } catch (error) {
-      console.error("Error processing image:", error);
-      toast.error(error instanceof Error ? error.message : "Error processing image");
+      console.error("Error removing background:", error);
+      toast.error("Failed to remove background. Please try again.");
     } finally {
       setProcessingIndex(null);
     }
@@ -74,7 +61,7 @@ export const ProductGrid = ({ products, onImageProcessed }: ProductGridProps) =>
   const handleDownloadOriginal = (imageUrl: string, title: string) => {
     const link = document.createElement("a");
     link.href = imageUrl;
-    link.download = `${title}-processed.png`;
+    link.download = `${title}-transparent.png`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -87,185 +74,105 @@ export const ProductGrid = ({ products, onImageProcessed }: ProductGridProps) =>
     opacity: number
   ) => {
     try {
-      const canvas = document.createElement('canvas');
-      const ctx = canvas.getContext('2d');
-      if (!ctx) throw new Error('Could not get canvas context');
-
       const img = new Image();
       img.crossOrigin = "anonymous";
-      
+      img.src = imageUrl;
+
       await new Promise((resolve, reject) => {
         img.onload = resolve;
         img.onerror = reject;
-        img.src = imageUrl;
       });
 
+      const canvas = document.createElement("canvas");
       canvas.width = img.width;
       canvas.height = img.height;
+      const ctx = canvas.getContext("2d");
 
-      ctx.fillStyle = backgroundColor + Math.round(opacity * 2.55).toString(16).padStart(2, '0');
+      if (!ctx) throw new Error("Could not get canvas context");
+
+      if (backgroundColor.includes("gradient")) {
+        const gradient = ctx.createLinearGradient(0, 0, canvas.width, 0);
+        // Parse gradient colors
+        const colors = backgroundColor.match(/#[a-f\d]{6}/gi) || ["#ffffff", "#ffffff"];
+        gradient.addColorStop(0, colors[0]);
+        gradient.addColorStop(1, colors[1]);
+        ctx.fillStyle = gradient;
+      } else {
+        ctx.fillStyle = `${backgroundColor}${Math.round(opacity * 2.55)
+          .toString(16)
+          .padStart(2, "0")}`;
+      }
+      
       ctx.fillRect(0, 0, canvas.width, canvas.height);
-
       ctx.drawImage(img, 0, 0);
 
-      canvas.toBlob((blob) => {
-        if (blob) {
-          const url = URL.createObjectURL(blob);
-          const link = document.createElement('a');
-          link.href = url;
-          link.download = `${title}-with-background.png`;
-          document.body.appendChild(link);
-          link.click();
-          document.body.removeChild(link);
-          URL.revokeObjectURL(url);
-        }
-      }, 'image/png');
+      const link = document.createElement("a");
+      link.download = `${title}-with-background.png`;
+      link.href = canvas.toDataURL("image/png");
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
     } catch (error) {
-      console.error('Error creating image with background:', error);
-      toast.error('Failed to download image with background');
+      console.error("Error downloading image:", error);
+      toast.error("Failed to download image. Please try again.");
     }
   };
 
-  const handleSelectAll = (selected: boolean) => {
-    setSelectedProducts(selected ? products.map((_, index) => index) : []);
-  };
-
-  const handleSelectProduct = (index: number, selected: boolean) => {
-    setSelectedProducts((prev) =>
-      selected
-        ? [...prev, index]
-        : prev.filter((i) => i !== index)
-    );
+  const handleFilterChange = (newFilters: Record<string, string>) => {
+    setFilters((prev) => ({
+      ...prev,
+      ...newFilters,
+    }));
   };
 
   const filteredProducts = products.filter((product) => {
-    return Object.entries(filters).every(([field, value]) => {
-      if (!value) return true;
-      if (field === 'product_type' && value === 'all') return true;
-      const productValue = String(product[field as keyof ProductData] || "").toLowerCase();
-      return productValue.includes(value.toLowerCase());
+    return Object.entries(filters).every(([key, value]) => {
+      if (!value || value === "all") return true;
+      const productValue = product[key as keyof ProductData];
+      return productValue?.toString().toLowerCase().includes(value.toLowerCase());
     });
   });
 
-  // Pagination calculations
-  const totalPages = Math.ceil(filteredProducts.length / itemsPerPage);
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const endIndex = startIndex + itemsPerPage;
-  const currentProducts = filteredProducts.slice(startIndex, endIndex);
-
-  const handlePageChange = (page: number) => {
-    setCurrentPage(page);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
-
-  if (products.length === 0) {
-    return null;
-  }
-
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <Button
-          variant="outline"
-          onClick={() => handleSelectAll(selectedProducts.length !== products.length)}
-        >
-          {selectedProducts.length === products.length
-            ? "Deselect All"
-            : "Select All"}
-        </Button>
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2">
-            <Select
-              value={itemsPerPage.toString()}
-              onValueChange={(value) => {
-                setItemsPerPage(Number(value));
-                setCurrentPage(1);
-              }}
-            >
-              <SelectTrigger className="w-[140px]">
-                <SelectValue placeholder="Items per page" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="10">10 per page</SelectItem>
-                <SelectItem value="50">50 per page</SelectItem>
-                <SelectItem value="100">100 per page</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-x-2">
-            <input
-              type="color"
-              value={selectedColor}
-              onChange={(e) => setSelectedColor(e.target.value)}
-              className="w-8 h-8 cursor-pointer"
-            />
-            <Slider
-              value={opacity}
-              onValueChange={setOpacity}
-              max={100}
-              step={1}
-              className="w-32 inline-block align-middle ml-2"
-            />
+    <SidebarProvider>
+      <div className="flex min-h-screen w-full">
+        <ImageControlsSidebar
+          selectedColor={selectedColor}
+          setSelectedColor={setSelectedColor}
+          opacity={opacity}
+          setOpacity={setOpacity}
+          gradientPresets={gradientPresets}
+          onBackgroundImageSelect={(file) => {
+            const url = URL.createObjectURL(file);
+            setSelectedColor(`url(${url})`);
+          }}
+        />
+        <div className="flex-1 p-6">
+          <ProductFilters
+            onFilterChange={handleFilterChange}
+            products={products}
+            filteredCount={filteredProducts.length}
+          />
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mt-6">
+            {filteredProducts.map((product, index) => (
+              <ProductCard
+                key={product.id || index}
+                product={product}
+                index={index}
+                onImageProcessed={onImageProcessed}
+                onSelect={handleSelect}
+                isSelected={selectedProducts.includes(index)}
+                processingIndex={processingIndex}
+                selectedColor={selectedColor}
+                opacity={opacity}
+                handleRemoveBackground={handleRemoveBackground}
+                handleDownloadOriginal={handleDownloadOriginal}
+                handleDownloadWithBackground={handleDownloadWithBackground}
+              />
+            ))}
           </div>
         </div>
       </div>
-
-      <ProductFilters 
-        products={products} 
-        onFilterChange={setFilters} 
-        filteredCount={filteredProducts.length}
-      />
-
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-        {currentProducts.map((product, index) => (
-          <ProductCard
-            key={startIndex + index}
-            product={product}
-            index={startIndex + index}
-            onImageProcessed={onImageProcessed}
-            onSelect={handleSelectProduct}
-            isSelected={selectedProducts.includes(startIndex + index)}
-            processingIndex={processingIndex}
-            selectedColor={selectedColor}
-            opacity={opacity}
-            handleRemoveBackground={handleRemoveBackground}
-            handleDownloadOriginal={handleDownloadOriginal}
-            handleDownloadWithBackground={handleDownloadWithBackground}
-          />
-        ))}
-      </div>
-
-      {totalPages > 1 && (
-        <Pagination className="my-8">
-          <PaginationContent>
-            <PaginationItem>
-              <PaginationPrevious 
-                onClick={() => handlePageChange(currentPage - 1)}
-                className={currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
-              />
-            </PaginationItem>
-            
-            {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-              <PaginationItem key={page}>
-                <PaginationLink
-                  onClick={() => handlePageChange(page)}
-                  isActive={currentPage === page}
-                  className="cursor-pointer"
-                >
-                  {page}
-                </PaginationLink>
-              </PaginationItem>
-            ))}
-            
-            <PaginationItem>
-              <PaginationNext
-                onClick={() => handlePageChange(currentPage + 1)}
-                className={currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
-              />
-            </PaginationItem>
-          </PaginationContent>
-        </Pagination>
-      )}
-    </div>
+    </SidebarProvider>
   );
 };

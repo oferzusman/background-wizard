@@ -153,6 +153,13 @@ export const ProductGrid = ({ products, onImageProcessed }: ProductGridProps) =>
     <SidebarProvider>
       <div className="flex min-h-screen w-full">
         <div className="flex flex-col w-80 border-r">
+          <div className="border-b">
+            <ProductFilters
+              onFilterChange={handleFilterChange}
+              products={products}
+              filteredCount={filteredProducts.length}
+            />
+          </div>
           <ImageControlsSidebar
             selectedColor={selectedColor}
             setSelectedColor={setSelectedColor}
@@ -164,13 +171,6 @@ export const ProductGrid = ({ products, onImageProcessed }: ProductGridProps) =>
               setSelectedColor(`url(${url})`);
             }}
           />
-          <div className="border-t">
-            <ProductFilters
-              onFilterChange={handleFilterChange}
-              products={products}
-              filteredCount={filteredProducts.length}
-            />
-          </div>
         </div>
         <div className="flex-1 p-6 overflow-auto">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">

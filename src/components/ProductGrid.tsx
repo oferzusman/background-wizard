@@ -28,25 +28,31 @@ export const ProductGrid = ({ products, onImageProcessed }: ProductGridProps) =>
 
   const handleSelect = (index: number, selected: boolean) => {
     setSelectedProducts((prev) =>
-      selected
-        ? [...prev, index]
-        : prev.filter((i) => i !== index)
+      selected ? [...prev, index] : prev.filter((i) => i !== index)
     );
   };
 
   const handleRemoveBackground = async (index: number) => {
     try {
       setProcessingIndex(index);
+      console.log("Starting background removal for product:", products[index]);
+      
       const img = new Image();
       img.crossOrigin = "anonymous";
       img.src = products[index]["image link"];
       
       await new Promise((resolve, reject) => {
         img.onload = resolve;
-        img.onerror = reject;
+        img.onerror = (error) => {
+          console.error("Error loading image:", error);
+          reject(new Error("Failed to load image"));
+        };
       });
 
+      console.log("Image loaded successfully, starting background removal");
       const processedBlob = await removeBackground(img);
+      console.log("Background removed successfully, creating URL");
+      
       const processedUrl = URL.createObjectURL(processedBlob);
       onImageProcessed(index, processedUrl);
       toast.success("Background removed successfully!");
@@ -92,7 +98,6 @@ export const ProductGrid = ({ products, onImageProcessed }: ProductGridProps) =>
 
       if (backgroundColor.includes("gradient")) {
         const gradient = ctx.createLinearGradient(0, 0, canvas.width, 0);
-        // Parse gradient colors
         const colors = backgroundColor.match(/#[a-f\d]{6}/gi) || ["#ffffff", "#ffffff"];
         gradient.addColorStop(0, colors[0]);
         gradient.addColorStop(1, colors[1]);

@@ -47,17 +47,7 @@ export const ProductGrid = ({ products, onImageProcessed }: ProductGridProps) =>
           console.error("Error loading image:", error);
           reject(new Error("Failed to load image"));
         };
-        
-        // Try to load the image through a CORS proxy
-        fetch(`https://api.allorigins.win/raw?url=${encodeURIComponent(products[index]["image link"])}`)
-          .then(response => response.blob())
-          .then(blob => {
-            img.src = URL.createObjectURL(blob);
-          })
-          .catch(error => {
-            console.error("Error fetching image through proxy:", error);
-            reject(error);
-          });
+        img.src = products[index]["image link"];
       });
 
       console.log("Image loaded successfully, starting background removal");
@@ -152,24 +142,28 @@ export const ProductGrid = ({ products, onImageProcessed }: ProductGridProps) =>
   return (
     <SidebarProvider>
       <div className="flex min-h-screen w-full">
-        <ImageControlsSidebar
-          selectedColor={selectedColor}
-          setSelectedColor={setSelectedColor}
-          opacity={opacity}
-          setOpacity={setOpacity}
-          gradientPresets={gradientPresets}
-          onBackgroundImageSelect={(file) => {
-            const url = URL.createObjectURL(file);
-            setSelectedColor(`url(${url})`);
-          }}
-        />
-        <div className="flex-1 p-6">
-          <ProductFilters
-            onFilterChange={handleFilterChange}
-            products={products}
-            filteredCount={filteredProducts.length}
+        <div className="flex flex-col w-80 border-r">
+          <ImageControlsSidebar
+            selectedColor={selectedColor}
+            setSelectedColor={setSelectedColor}
+            opacity={opacity}
+            setOpacity={setOpacity}
+            gradientPresets={gradientPresets}
+            onBackgroundImageSelect={(file) => {
+              const url = URL.createObjectURL(file);
+              setSelectedColor(`url(${url})`);
+            }}
           />
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mt-6">
+          <div className="border-t">
+            <ProductFilters
+              onFilterChange={handleFilterChange}
+              products={products}
+              filteredCount={filteredProducts.length}
+            />
+          </div>
+        </div>
+        <div className="flex-1 p-6 overflow-auto">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {filteredProducts.map((product, index) => (
               <ProductCard
                 key={product.id || index}

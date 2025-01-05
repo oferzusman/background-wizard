@@ -31,23 +31,10 @@ function resizeImageIfNeeded(canvas: HTMLCanvasElement, ctx: CanvasRenderingCont
   return false;
 }
 
-const proxyImage = async (imageUrl: string): Promise<string> => {
-  try {
-    // Use a CORS proxy to fetch the image
-    const response = await fetch(`https://api.allorigins.win/raw?url=${encodeURIComponent(imageUrl)}`);
-    if (!response.ok) throw new Error('Failed to fetch image through proxy');
-    const blob = await response.blob();
-    return URL.createObjectURL(blob);
-  } catch (error) {
-    console.error('Error proxying image:', error);
-    throw error;
-  }
-};
-
 export const removeBackground = async (imageElement: HTMLImageElement): Promise<Blob> => {
   try {
     console.log('Starting background removal process...');
-    const segmenter = await pipeline('image-segmentation', 'Xenova/segformer-b0-finetuned-ade-512-512', {
+    const segmenter = await pipeline('image-segmentation', 'Xenova/segformer-b2-finetuned-ade-512-512', {
       device: 'webgpu',
     });
     
@@ -62,12 +49,15 @@ export const removeBackground = async (imageElement: HTMLImageElement): Promise<
     console.log(`Image ${wasResized ? 'was' : 'was not'} resized. Final dimensions: ${canvas.width}x${canvas.height}`);
     
     // Get image data as base64
-    const imageData = canvas.toDataURL('image/jpeg', 0.8);
+    const imageData = canvas.toDataURL('image/jpeg', 0.9);
     console.log('Image converted to base64');
     
     // Process the image with the segmentation model
     console.log('Processing with segmentation model...');
-    const result = await segmenter(imageData);
+    const result = await segmenter(imageData, {
+      threshold: 0.5,
+      overlap: true,
+    });
     
     console.log('Segmentation result:', result);
     
@@ -94,17 +84,18 @@ export const removeBackground = async (imageElement: HTMLImageElement): Promise<
     );
     const data = outputImageData.data;
     
-    // Apply inverted mask to alpha channel
+    // Apply inverted mask to alpha channel with improved edge handling
     for (let i = 0; i < result[0].mask.data.length; i++) {
-      // Invert the mask value (1 - value) to keep the subject instead of the background
-      const alpha = Math.round((1 - result[0].mask.data[i]) * 255);
+      const maskValue = result[0].mask.data[i];
+      // Use a smoother threshold for better edge handling
+      const alpha = Math.round((1 - Math.min(Math.max(maskValue, 0), 1)) * 255);
       data[i * 4 + 3] = alpha;
     }
     
     outputCtx.putImageData(outputImageData, 0, 0);
     console.log('Mask applied successfully');
     
-    // Convert canvas to blob
+    // Convert canvas to blob with higher quality
     return new Promise((resolve, reject) => {
       outputCanvas.toBlob(
         (blob) => {

@@ -56,7 +56,6 @@ export const removeBackground = async (imageElement: HTMLImageElement): Promise<
     console.log('Processing with segmentation model...');
     const result = await segmenter(imageData, {
       threshold: 0.5,
-      overlap: true,
     });
     
     console.log('Segmentation result:', result);

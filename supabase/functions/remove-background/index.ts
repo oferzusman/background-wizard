@@ -44,7 +44,7 @@ serve(async (req) => {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${STABILITY_API_KEY}`,
-          'Accept': 'image/png',
+          'Accept': 'image/*',  // Changed this line to match expected header
         },
         body: formData,
       }

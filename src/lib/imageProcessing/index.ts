@@ -14,10 +14,10 @@ export const removeBackground = async (image: HTMLImageElement): Promise<Blob> =
     const canvas = createCanvas(image.width, image.height);
     const ctx = drawImageOnCanvas(canvas, image);
     
-    // Instead of using ImageData, we'll pass the canvas directly
-    // The segmenter will handle the conversion internally
+    // Convert to base64 for the segmenter
+    const imageData = canvas.toDataURL('image/jpeg', 0.9);
     console.log('Processing with segmentation model...');
-    const result = await segmenter(canvas, {
+    const result = await segmenter(imageData, {
       threshold: 0.5,
     });
     

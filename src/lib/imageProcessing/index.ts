@@ -32,18 +32,15 @@ export const removeBackground = async (image: HTMLImageElement): Promise<Blob> =
     // Create FormData with the image blob
     const formData = new FormData();
     formData.append('image', blob);
-    formData.append('output_format', 'png');
 
     console.log('Calling Stability AI API...');
     const response = await fetch(
       'https://kxyoayirtfroywgbecwx.supabase.co/functions/v1/remove-background',
       {
         method: 'POST',
-        body: JSON.stringify({
-          imageUrl: image.src
-        }),
+        body: formData,
         headers: {
-          'Content-Type': 'application/json',
+          'Accept': 'image/png',
         },
       }
     );
@@ -54,9 +51,8 @@ export const removeBackground = async (image: HTMLImageElement): Promise<Blob> =
       throw new Error(`Failed to remove background: ${errorText}`);
     }
 
-    const processedImageBlob = await response.blob();
     console.log('Successfully received processed image from Stability AI');
-    return processedImageBlob;
+    return await response.blob();
   } catch (error) {
     console.error('Error removing background:', error);
     throw error;

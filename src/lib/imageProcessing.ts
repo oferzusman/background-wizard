@@ -68,8 +68,14 @@ export const removeBackground = async (imageElement: HTMLImageElement): Promise<
     
     const segmenter = await pipeline('image-segmentation', 'Xenova/segformer-b2-finetuned-ade-512-512', {
       device: 'webgpu',
-      progress_callback: (progress) => {
-        console.log('Loading model:', Math.round(progress.progress * 100), '%');
+      progress_callback: (progressInfo) => {
+        // Handle both download and initialization progress
+        if ('loaded' in progressInfo && 'total' in progressInfo) {
+          const percentage = (progressInfo.loaded / progressInfo.total) * 100;
+          console.log('Loading model:', Math.round(percentage), '%');
+        } else {
+          console.log('Initializing model...');
+        }
       }
     });
     console.log('Model loaded successfully');

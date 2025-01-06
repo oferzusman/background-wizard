@@ -18,14 +18,14 @@ const Index = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 pb-12">
       <div className="container mx-auto py-12 px-4 space-y-8">
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
         >
-          <h1 className="text-4xl font-bold text-slate-900 mb-4 text-center bg-clip-text text-transparent bg-gradient-to-r from-violet-500 to-purple-600">
+          <h1 className="text-4xl font-bold text-center bg-clip-text text-transparent bg-gradient-to-r from-violet-600 to-indigo-600 mb-4">
             Product Background Manager
           </h1>
           <p className="text-slate-600 text-center max-w-2xl mx-auto">
@@ -40,7 +40,9 @@ const Index = () => {
             transition={{ delay: 0.2 }}
             className="max-w-2xl mx-auto"
           >
-            <FileUpload onDataParsed={handleDataParsed} />
+            <div className="glass-effect rounded-xl p-8">
+              <FileUpload onDataParsed={handleDataParsed} />
+            </div>
           </motion.div>
         ) : (
           <motion.div
@@ -49,13 +51,13 @@ const Index = () => {
             transition={{ duration: 0.5 }}
             className="space-y-6"
           >
-            <div className="flex justify-between items-center bg-white p-4 rounded-lg shadow-sm">
-              <h2 className="text-xl font-semibold text-slate-800">
+            <div className="glass-effect rounded-xl p-6 flex justify-between items-center">
+              <h2 className="text-xl font-semibold bg-clip-text text-transparent bg-gradient-to-r from-violet-600 to-indigo-600">
                 {products.length} Products Loaded
               </h2>
               <button
                 onClick={() => setProducts([])}
-                className="text-slate-600 hover:text-slate-900 transition-colors duration-200 px-4 py-2 rounded-md hover:bg-slate-50"
+                className="px-4 py-2 rounded-lg text-slate-600 hover:text-slate-900 bg-white hover:bg-slate-50 transition-all duration-200 shadow-sm"
               >
                 Upload New File
               </button>

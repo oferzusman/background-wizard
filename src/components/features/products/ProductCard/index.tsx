@@ -20,7 +20,7 @@ interface ProductCardProps {
   isSelected: boolean;
   processingIndex: number | null;
   selectedColor: string;
-  opacity: number;  // Changed from number[] to number
+  opacity: number;
   handleRemoveBackground: (index: number) => Promise<void>;
   handleDownloadOriginal: (imageUrl: string, title: string) => void;
   handleDownloadWithBackground: (
@@ -44,6 +44,26 @@ export const ProductCard = ({
   handleDownloadOriginal,
   handleDownloadWithBackground,
 }: ProductCardProps) => {
+  const getBackgroundStyle = () => {
+    const opacityHex = Math.round(opacity * 2.55).toString(16).padStart(2, "0");
+    
+    if (selectedColor.startsWith('linear-gradient')) {
+      return {
+        background: selectedColor,
+      };
+    } else if (selectedColor.startsWith('url')) {
+      return {
+        backgroundImage: selectedColor,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+      };
+    } else {
+      return {
+        backgroundColor: `${selectedColor}${opacityHex}`,
+      };
+    }
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0, scale: 0.95 }}
@@ -71,11 +91,7 @@ export const ProductCard = ({
         {product.processedImageUrl ? (
           <div
             className="w-full h-full relative"
-            style={{
-              backgroundColor: `${selectedColor}${Math.round(opacity * 2.55)
-                .toString(16)
-                .padStart(2, "0")}`,
-            }}
+            style={getBackgroundStyle()}
           >
             <img
               src={product.processedImageUrl}

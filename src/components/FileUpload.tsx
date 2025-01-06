@@ -41,12 +41,29 @@ export const FileUpload = ({ onDataParsed }: FileUploadProps) => {
       const text = await file.text();
       const parsedData = await parseFileContent(text, fileType || "");
 
+      // First save the file content
+      const { data: uploadData, error: uploadError } = await supabase
+        .from("file_uploads")
+        .insert({
+          file_type: fileType,
+          file_content: parsedData
+        })
+        .select()
+        .single();
+
+      if (uploadError) {
+        console.error("Error saving file content:", uploadError);
+        throw new Error("Failed to save file content");
+      }
+
+      // Then save the file history entry
       const { error: historyError } = await supabase
         .from("file_history")
         .insert({
           file_type: fileType,
           original_filename: file.name,
           status: "completed",
+          file_url: uploadData.file_url
         });
 
       if (historyError) {

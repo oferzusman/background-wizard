@@ -9,23 +9,37 @@ export default function Index() {
   const [greeting, setGreeting] = useState("");
   const [userName, setUserName] = useState("");
 
-  const { data: userCount, isLoading: isLoadingUsers } = useQuery({
-    queryKey: ["userCount"],
+  // Get current user's profile
+  const { data: currentUser } = useQuery({
+    queryKey: ["currentUser"],
+    queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        return user;
+      }
+      return null;
+    },
+  });
+
+  // Get total number of products instead of users
+  const { data: productCount, isLoading: isLoadingProducts } = useQuery({
+    queryKey: ["productCount"],
     queryFn: async () => {
       const { count } = await supabase
-        .from("profiles")
+        .from("products")
         .select("*", { count: "exact", head: true });
       return count || 0;
     },
   });
 
+  // Get recent file history instead of activity
   const { data: recentActivity, isLoading: isLoadingActivity } = useQuery({
     queryKey: ["recentActivity"],
     queryFn: async () => {
       const { data } = await supabase
-        .from("activity_logs")
+        .from("file_history")
         .select("*")
-        .order("created_at", { ascending: false })
+        .order("uploaded_at", { ascending: false })
         .limit(5);
       return data;
     },
@@ -40,19 +54,11 @@ export default function Index() {
     };
     setGreeting(getGreeting());
 
-    const getUserName = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("first_name")
-          .eq("id", user.id)
-          .single();
-        setUserName(profile?.first_name || user.email?.split("@")[0] || "");
-      }
-    };
-    getUserName();
-  }, []);
+    // Set username from email if available
+    if (currentUser) {
+      setUserName(currentUser.email?.split("@")[0] || "");
+    }
+  }, [currentUser]);
 
   return (
     <div className="space-y-6">
@@ -68,13 +74,13 @@ export default function Index() {
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Users</CardTitle>
+            <CardTitle className="text-sm font-medium">Total Products</CardTitle>
           </CardHeader>
           <CardContent>
-            {isLoadingUsers ? (
+            {isLoadingProducts ? (
               <Skeleton className="h-7 w-20" />
             ) : (
-              <div className="text-2xl font-bold">{userCount}</div>
+              <div className="text-2xl font-bold">{productCount}</div>
             )}
           </CardContent>
         </Card>
@@ -100,9 +106,9 @@ export default function Index() {
                     className="flex items-center gap-4 text-sm"
                   >
                     <div className="flex-1">
-                      <p className="font-medium">{activity.action}</p>
+                      <p className="font-medium">{activity.file_type}</p>
                       <p className="text-muted-foreground">
-                        {new Date(activity.created_at).toLocaleString()}
+                        {new Date(activity.uploaded_at).toLocaleString()}
                       </p>
                     </div>
                   </div>

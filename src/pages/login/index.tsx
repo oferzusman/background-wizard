@@ -37,10 +37,6 @@ const Login = () => {
                     inputBorderHover: '#8b5cf6',
                     inputBorderFocus: '#8b5cf6',
                   },
-                  borderRadii: {
-                    button: '0.75rem',
-                    input: '0.75rem',
-                  },
                   space: {
                     inputPadding: '0.75rem',
                     buttonPadding: '0.75rem',

@@ -2,11 +2,11 @@ import {
   Sidebar,
   SidebarContent,
   SidebarGroup,
-  SidebarGroupContent,
   SidebarGroupLabel,
+  SidebarGroupContent,
 } from "@/components/ui/sidebar";
 import { ProductFilters } from "../ProductFilters";
-import { Palette, Gradient, Image } from "lucide-react";
+import { Palette, Paintbrush, Image } from "lucide-react";
 import { Slider } from "@/components/ui/slider";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -105,7 +105,7 @@ export function ProductSidebar({
                     Solid
                   </TabsTrigger>
                   <TabsTrigger value="gradient" className="flex-1">
-                    <Gradient className="w-4 h-4 mr-2" />
+                    <Paintbrush className="w-4 h-4 mr-2" />
                     Gradient
                   </TabsTrigger>
                   <TabsTrigger value="image" className="flex-1">

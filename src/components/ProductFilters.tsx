@@ -37,15 +37,15 @@ export const ProductFilters = ({ onFilterChange, products, filteredCount }: Prod
   );
 
   return (
-    <div className="p-4 space-y-4">
+    <div className="space-y-4">
       <div className="flex justify-between items-center mb-4">
         <h3 className="text-lg font-medium">Filters</h3>
         <span className="text-sm text-slate-600">
-          {filteredCount} products
+          {filteredCount} products found
         </span>
       </div>
       
-      <div className="space-y-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-white rounded-lg shadow">
         <div className="space-y-2">
           <Label htmlFor="product_type">Product Type</Label>
           <Select
@@ -55,7 +55,7 @@ export const ProductFilters = ({ onFilterChange, products, filteredCount }: Prod
               <SelectValue placeholder="Select product type" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All Types</SelectItem>
+              <SelectItem value="">All Types</SelectItem>
               {productTypes.map(([type, count]) => (
                 <SelectItem key={type} value={type}>
                   {type} ({count})

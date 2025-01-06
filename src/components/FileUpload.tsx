@@ -7,7 +7,6 @@ import { FileHistory } from "./FileHistory";
 import { parseFileContent } from "@/utils/fileParser";
 import { motion } from "framer-motion";
 import { Upload, FileType } from "lucide-react";
-import { Json } from "@/integrations/supabase/types";
 
 interface FileUploadProps {
   onDataParsed: (data: ProductData[]) => void;
@@ -42,40 +41,12 @@ export const FileUpload = ({ onDataParsed }: FileUploadProps) => {
       const text = await file.text();
       const parsedData = await parseFileContent(text, fileType || "");
 
-      // Convert parsedData to a format that matches the Json type
-      const jsonData = parsedData.map(item => ({
-        ...item,
-        "image link": item["image link"],
-        product_type: item.product_type || null,
-        id: item.id || null,
-        link: item.link || null
-      })) as Json;
-
-      console.log("Converted data for storage:", jsonData);
-
-      // First save the file content
-      const { data: uploadData, error: uploadError } = await supabase
-        .from("file_uploads")
-        .insert({
-          file_type: fileType,
-          file_content: jsonData
-        })
-        .select()
-        .single();
-
-      if (uploadError) {
-        console.error("Error saving file content:", uploadError);
-        throw new Error("Failed to save file content");
-      }
-
-      // Then save the file history entry
       const { error: historyError } = await supabase
         .from("file_history")
         .insert({
           file_type: fileType,
           original_filename: file.name,
           status: "completed",
-          file_url: uploadData.file_url
         });
 
       if (historyError) {

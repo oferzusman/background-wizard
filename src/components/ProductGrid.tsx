@@ -1,63 +1,54 @@
 import { useState } from "react";
-import { ProductCard } from "./ProductCard";
 import { ProductData } from "./FileUpload";
-import { ImageControlsSidebar } from "./ImageControlsSidebar";
-import { SidebarProvider } from "@/components/ui/sidebar";
+import { ProductCard } from "./ProductCard";
+import { ProductFilters } from "./ProductFilters";
+import { Button } from "@/components/ui/button";
+import { Slider } from "@/components/ui/slider";
 import { toast } from "sonner";
-import { removeBackground } from "@/lib/imageProcessing";
+import { supabase } from "@/integrations/supabase/client";
 
 interface ProductGridProps {
   products: ProductData[];
   onImageProcessed: (index: number, newImageUrl: string) => void;
 }
 
-const gradientPresets = [
-  "linear-gradient(to right, #ee9ca7, #ffdde1)",
-  "linear-gradient(to right, #2193b0, #6dd5ed)",
-  "linear-gradient(to right, #c6ffdd, #fbd786, #f7797d)",
-  "linear-gradient(to right, #00b4db, #0083b0)",
-];
-
 export const ProductGrid = ({ products, onImageProcessed }: ProductGridProps) => {
-  const [selectedProducts, setSelectedProducts] = useState<number[]>([]);
   const [processingIndex, setProcessingIndex] = useState<number | null>(null);
   const [selectedColor, setSelectedColor] = useState("#ffffff");
   const [opacity, setOpacity] = useState([100]);
+  const [selectedProducts, setSelectedProducts] = useState<number[]>([]);
   const [filters, setFilters] = useState<Record<string, string>>({});
-
-  const handleSelect = (index: number, selected: boolean) => {
-    setSelectedProducts((prev) =>
-      selected ? [...prev, index] : prev.filter((i) => i !== index)
-    );
-  };
+  
+  console.log("Rendering ProductGrid with products:", products);
 
   const handleRemoveBackground = async (index: number) => {
+    setProcessingIndex(index);
+    const product = products[index];
+    
     try {
-      setProcessingIndex(index);
-      console.log("Starting background removal for product:", products[index]);
+      console.log('Starting background removal for:', product.title);
       
-      const imageUrl = products[index]["image link"];
-      console.log("Image URL:", imageUrl);
-
-      // Create an image element and load the image
-      const img = new Image();
-      img.crossOrigin = "anonymous";
-      await new Promise((resolve, reject) => {
-        img.onload = resolve;
-        img.onerror = reject;
-        img.src = imageUrl;
+      const { data, error } = await supabase.functions.invoke('remove-background', {
+        body: { imageUrl: product["image link"] }
       });
 
-      console.log("Image loaded, starting background removal process");
-      const processedBlob = await removeBackground(img);
-      const processedUrl = URL.createObjectURL(processedBlob);
+      if (error) {
+        console.error("Supabase function error:", error);
+        throw error;
+      }
+
+      if (!data?.processedUrl) {
+        throw new Error("No processed image URL returned");
+      }
+
+      console.log('Successfully processed image for:', product.title);
       
-      console.log("Processing complete, updating image");
-      onImageProcessed(index, processedUrl);
+      onImageProcessed(index, data.processedUrl);
+      
       toast.success("Background removed successfully!");
     } catch (error) {
-      console.error("Error removing background:", error);
-      toast.error("Failed to remove background. Please try again.");
+      console.error("Error processing image:", error);
+      toast.error(error instanceof Error ? error.message : "Error processing image");
     } finally {
       setProcessingIndex(null);
     }
@@ -66,7 +57,7 @@ export const ProductGrid = ({ products, onImageProcessed }: ProductGridProps) =>
   const handleDownloadOriginal = (imageUrl: string, title: string) => {
     const link = document.createElement("a");
     link.href = imageUrl;
-    link.download = `${title}-transparent.png`;
+    link.download = `${title}-processed.png`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -79,102 +70,121 @@ export const ProductGrid = ({ products, onImageProcessed }: ProductGridProps) =>
     opacity: number
   ) => {
     try {
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      if (!ctx) throw new Error('Could not get canvas context');
+
       const img = new Image();
       img.crossOrigin = "anonymous";
-      img.src = imageUrl;
-
+      
       await new Promise((resolve, reject) => {
         img.onload = resolve;
         img.onerror = reject;
+        img.src = imageUrl;
       });
 
-      const canvas = document.createElement("canvas");
       canvas.width = img.width;
       canvas.height = img.height;
-      const ctx = canvas.getContext("2d");
 
-      if (!ctx) throw new Error("Could not get canvas context");
-
-      if (backgroundColor.includes("gradient")) {
-        const gradient = ctx.createLinearGradient(0, 0, canvas.width, 0);
-        const colors = backgroundColor.match(/#[a-f\d]{6}/gi) || ["#ffffff", "#ffffff"];
-        gradient.addColorStop(0, colors[0]);
-        gradient.addColorStop(1, colors[1]);
-        ctx.fillStyle = gradient;
-      } else {
-        ctx.fillStyle = `${backgroundColor}${Math.round(opacity * 2.55)
-          .toString(16)
-          .padStart(2, "0")}`;
-      }
-      
+      ctx.fillStyle = backgroundColor + Math.round(opacity * 2.55).toString(16).padStart(2, '0');
       ctx.fillRect(0, 0, canvas.width, canvas.height);
+
       ctx.drawImage(img, 0, 0);
 
-      const link = document.createElement("a");
-      link.download = `${title}-with-background.png`;
-      link.href = canvas.toDataURL("image/png");
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+      canvas.toBlob((blob) => {
+        if (blob) {
+          const url = URL.createObjectURL(blob);
+          const link = document.createElement('a');
+          link.href = url;
+          link.download = `${title}-with-background.png`;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          URL.revokeObjectURL(url);
+        }
+      }, 'image/png');
     } catch (error) {
-      console.error("Error downloading image:", error);
-      toast.error("Failed to download image. Please try again.");
+      console.error('Error creating image with background:', error);
+      toast.error('Failed to download image with background');
     }
   };
 
-  const handleFilterChange = (newFilters: Record<string, string>) => {
-    setFilters((prev) => ({
-      ...prev,
-      ...newFilters,
-    }));
+  const handleSelectAll = (selected: boolean) => {
+    setSelectedProducts(selected ? products.map((_, index) => index) : []);
+  };
+
+  const handleSelectProduct = (index: number, selected: boolean) => {
+    setSelectedProducts((prev) =>
+      selected
+        ? [...prev, index]
+        : prev.filter((i) => i !== index)
+    );
   };
 
   const filteredProducts = products.filter((product) => {
-    return Object.entries(filters).every(([key, value]) => {
-      if (!value || value === "all") return true;
-      const productValue = product[key as keyof ProductData];
-      return productValue?.toString().toLowerCase().includes(value.toLowerCase());
+    return Object.entries(filters).every(([field, value]) => {
+      if (!value) return true;
+      const productValue = String(product[field as keyof ProductData] || "").toLowerCase();
+      return productValue.includes(value.toLowerCase());
     });
   });
 
+  if (products.length === 0) {
+    return null;
+  }
+
   return (
-    <SidebarProvider>
-      <div className="flex min-h-screen w-full">
-        <ImageControlsSidebar
-          selectedColor={selectedColor}
-          setSelectedColor={setSelectedColor}
-          opacity={opacity}
-          setOpacity={setOpacity}
-          gradientPresets={gradientPresets}
-          onBackgroundImageSelect={(file) => {
-            const url = URL.createObjectURL(file);
-            setSelectedColor(`url(${url})`);
-          }}
-          onFilterChange={handleFilterChange}
-          products={products}
-          filteredCount={filteredProducts.length}
-        />
-        <div className="flex-1 p-6 overflow-auto">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {filteredProducts.map((product, index) => (
-              <ProductCard
-                key={product.id || index}
-                product={product}
-                index={index}
-                onImageProcessed={onImageProcessed}
-                onSelect={handleSelect}
-                isSelected={selectedProducts.includes(index)}
-                processingIndex={processingIndex}
-                selectedColor={selectedColor}
-                opacity={opacity}
-                handleRemoveBackground={handleRemoveBackground}
-                handleDownloadOriginal={handleDownloadOriginal}
-                handleDownloadWithBackground={handleDownloadWithBackground}
-              />
-            ))}
-          </div>
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <Button
+          variant="outline"
+          onClick={() => handleSelectAll(selectedProducts.length !== products.length)}
+        >
+          {selectedProducts.length === products.length
+            ? "Deselect All"
+            : "Select All"}
+        </Button>
+        <div className="space-x-2">
+          <input
+            type="color"
+            value={selectedColor}
+            onChange={(e) => setSelectedColor(e.target.value)}
+            className="w-8 h-8 cursor-pointer"
+          />
+          <Slider
+            value={opacity}
+            onValueChange={setOpacity}
+            max={100}
+            step={1}
+            className="w-32 inline-block align-middle ml-2"
+          />
         </div>
       </div>
-    </SidebarProvider>
+
+      <ProductFilters 
+        products={products} 
+        onFilterChange={setFilters} 
+        filteredCount={filteredProducts.length}
+      />
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        {filteredProducts.map((product, index) => (
+          <ProductCard
+            key={index}
+            product={product}
+            index={index}
+            onImageProcessed={onImageProcessed}
+            onSelect={handleSelectProduct}
+            isSelected={selectedProducts.includes(index)}
+            processingIndex={processingIndex}
+            selectedColor={selectedColor}
+            opacity={opacity}
+            handleRemoveBackground={handleRemoveBackground}
+            handleDownloadOriginal={handleDownloadOriginal}
+            handleDownloadWithBackground={handleDownloadWithBackground}
+          />
+        ))}
+      </div>
+    </div>
   );
 };

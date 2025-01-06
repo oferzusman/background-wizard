@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.38.4';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -17,27 +18,38 @@ serve(async (req) => {
       throw new Error('Missing Stability API key');
     }
 
-    // Get the request body
-    const body = await req.json();
-    const imageUrl = body.imageUrl;
+    const supabase = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    );
 
-    if (!imageUrl) {
-      throw new Error('No image URL provided');
-    }
+    const { imageUrl } = await req.json();
+    console.log('Processing image:', imageUrl);
 
-    console.log('Fetching image from URL:', imageUrl);
+    // Fetch the image with custom headers
+    const imageResponse = await fetch(imageUrl, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+        'Accept': 'image/webp,image/apng,image/*,*/*;q=0.8',
+        'Accept-Language': 'en-US,en;q=0.9',
+      },
+    });
 
-    // Fetch the image ourselves to avoid CORS issues
-    const imageResponse = await fetch(imageUrl);
     if (!imageResponse.ok) {
-      throw new Error('Failed to fetch image from URL');
+      console.error('Failed to fetch image:', imageResponse.status, imageResponse.statusText);
+      throw new Error(`Failed to fetch image: ${imageResponse.status}`);
     }
 
     const imageBlob = await imageResponse.blob();
-    const formData = new FormData();
-    formData.append('image', imageBlob, 'image.png');
+    console.log('Successfully fetched image, size:', imageBlob.size);
 
-    console.log('Sending image to Stability AI...');
+    // Create form data for Stability AI
+    const formData = new FormData();
+    formData.append('image', imageBlob);
+    formData.append('output_format', 'png');
+
+    // Call Stability AI API
+    console.log('Calling Stability AI API...');
     const stabilityResponse = await fetch(
       'https://api.stability.ai/v2beta/stable-image/edit/remove-background',
       {
@@ -59,18 +71,42 @@ serve(async (req) => {
     console.log('Successfully processed image with Stability AI');
     const processedImageBuffer = await stabilityResponse.arrayBuffer();
     
-    // Convert ArrayBuffer to base64
-    const uint8Array = new Uint8Array(processedImageBuffer);
-    const binary = uint8Array.reduce((acc, byte) => acc + String.fromCharCode(byte), '');
-    const base64 = btoa(binary);
+    // Store the processed image in Supabase Storage
+    const fileName = `${crypto.randomUUID()}.png`;
+    const { data: uploadData, error: uploadError } = await supabase.storage
+      .from('processed-images')
+      .upload(fileName, processedImageBuffer, {
+        contentType: 'image/png',
+        cacheControl: '3600',
+      });
+
+    if (uploadError) {
+      console.error('Failed to upload to storage:', uploadError);
+      throw new Error('Failed to store processed image');
+    }
+
+    // Get the public URL for the uploaded image
+    const { data: { publicUrl } } = supabase.storage
+      .from('processed-images')
+      .getPublicUrl(fileName);
+
+    // Store the reference in the database
+    const { error: dbError } = await supabase
+      .from('processed_images')
+      .insert({
+        original_url: imageUrl,
+        processed_url: publicUrl,
+      });
+
+    if (dbError) {
+      console.error('Failed to store in database:', dbError);
+      throw new Error('Failed to store image reference');
+    }
 
     return new Response(
-      JSON.stringify({ data: base64 }),
+      JSON.stringify({ processedUrl: publicUrl }),
       {
-        headers: {
-          ...corsHeaders,
-          'Content-Type': 'application/json',
-        },
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       }
     );
   } catch (error) {

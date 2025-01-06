@@ -31,54 +31,12 @@ function resizeImageIfNeeded(canvas: HTMLCanvasElement, ctx: CanvasRenderingCont
   return false;
 }
 
-async function fetchImageAsBlob(url: string): Promise<Blob> {
-  const response = await fetch(url, {
-    mode: 'cors',
-    credentials: 'omit'
-  });
-  
-  if (!response.ok) {
-    throw new Error(`Failed to fetch image: ${response.statusText}`);
-  }
-  
-  return await response.blob();
-}
-
-async function createImageFromBlob(blob: Blob): Promise<HTMLImageElement> {
-  return new Promise((resolve, reject) => {
-    const img = new Image();
-    img.crossOrigin = "anonymous";
-    img.onload = () => resolve(img);
-    img.onerror = (e) => reject(new Error('Failed to load image: ' + e));
-    img.src = URL.createObjectURL(blob);
-  });
-}
-
 export const removeBackground = async (imageElement: HTMLImageElement): Promise<Blob> => {
   try {
     console.log('Starting background removal process...');
-    
-    // First, fetch the image as a blob to handle CORS
-    const imageBlob = await fetchImageAsBlob(imageElement.src);
-    console.log('Successfully fetched image as blob');
-    
-    // Create a new image from the blob
-    const img = await createImageFromBlob(imageBlob);
-    console.log('Successfully created new image from blob');
-    
     const segmenter = await pipeline('image-segmentation', 'Xenova/segformer-b0-finetuned-ade-512-512', {
       device: 'webgpu',
-      progress_callback: (progressInfo) => {
-        // Handle both download and initialization progress
-        if ('loaded' in progressInfo && 'total' in progressInfo) {
-          const percentage = (progressInfo.loaded / progressInfo.total) * 100;
-          console.log('Loading model:', Math.round(percentage), '%');
-        } else {
-          console.log('Initializing model...');
-        }
-      }
     });
-    console.log('Model loaded successfully');
     
     // Convert HTMLImageElement to canvas
     const canvas = document.createElement('canvas');
@@ -87,18 +45,16 @@ export const removeBackground = async (imageElement: HTMLImageElement): Promise<
     if (!ctx) throw new Error('Could not get canvas context');
     
     // Resize image if needed and draw it to canvas
-    const wasResized = resizeImageIfNeeded(canvas, ctx, img);
+    const wasResized = resizeImageIfNeeded(canvas, ctx, imageElement);
     console.log(`Image ${wasResized ? 'was' : 'was not'} resized. Final dimensions: ${canvas.width}x${canvas.height}`);
     
     // Get image data as base64
-    const imageData = canvas.toDataURL('image/jpeg', 0.9);
+    const imageData = canvas.toDataURL('image/jpeg', 0.8);
     console.log('Image converted to base64');
     
     // Process the image with the segmentation model
     console.log('Processing with segmentation model...');
-    const result = await segmenter(imageData, {
-      threshold: 0.5,
-    });
+    const result = await segmenter(imageData);
     
     console.log('Segmentation result:', result);
     
@@ -125,18 +81,17 @@ export const removeBackground = async (imageElement: HTMLImageElement): Promise<
     );
     const data = outputImageData.data;
     
-    // Apply inverted mask to alpha channel with improved edge handling
+    // Apply inverted mask to alpha channel
     for (let i = 0; i < result[0].mask.data.length; i++) {
-      const maskValue = result[0].mask.data[i];
-      // Use a smoother threshold for better edge handling
-      const alpha = Math.round((1 - Math.min(Math.max(maskValue, 0), 1)) * 255);
+      // Invert the mask value (1 - value) to keep the subject instead of the background
+      const alpha = Math.round((1 - result[0].mask.data[i]) * 255);
       data[i * 4 + 3] = alpha;
     }
     
     outputCtx.putImageData(outputImageData, 0, 0);
     console.log('Mask applied successfully');
     
-    // Convert canvas to blob with higher quality
+    // Convert canvas to blob
     return new Promise((resolve, reject) => {
       outputCanvas.toBlob(
         (blob) => {
@@ -152,12 +107,7 @@ export const removeBackground = async (imageElement: HTMLImageElement): Promise<
       );
     });
   } catch (error) {
-    console.error('Error in removeBackground:', error);
-    // Ensure we're throwing an actual Error object
-    if (error instanceof Error) {
-      throw error;
-    } else {
-      throw new Error('Failed to remove background: ' + String(error));
-    }
+    console.error('Error removing background:', error);
+    throw error;
   }
 };

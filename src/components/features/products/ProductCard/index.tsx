@@ -10,7 +10,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Download, Eraser, Image } from "lucide-react";
+import { Download, Eraser, Image, XCircle } from "lucide-react";
 
 interface ProductCardProps {
   product: ProductData;
@@ -22,6 +22,7 @@ interface ProductCardProps {
   selectedColor: string;
   opacity: number;
   handleRemoveBackground: (index: number) => Promise<void>;
+  handleClearBackground: (index: number) => void;
   handleDownloadOriginal: (imageUrl: string, title: string) => void;
   handleDownloadWithBackground: (
     imageUrl: string,
@@ -41,6 +42,7 @@ export const ProductCard = ({
   selectedColor,
   opacity,
   handleRemoveBackground,
+  handleClearBackground,
   handleDownloadOriginal,
   handleDownloadWithBackground,
 }: ProductCardProps) => {
@@ -82,7 +84,13 @@ export const ProductCard = ({
           />
         </div>
         {product.processedImageUrl && (
-          <div className="absolute top-3 right-3 z-10">
+          <div className="absolute top-3 right-3 z-10 flex gap-2">
+            <button
+              onClick={() => handleClearBackground(index)}
+              className="bg-red-100 p-1.5 rounded-full hover:bg-red-200 transition-colors"
+            >
+              <XCircle className="w-4 h-4 text-red-600" />
+            </button>
             <div className="bg-green-100 p-1.5 rounded-full">
               <Eraser className="w-4 h-4 text-green-600" />
             </div>

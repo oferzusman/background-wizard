@@ -5,6 +5,8 @@ import { toast } from "sonner";
 import { supabase } from "@/lib/supabase/client";
 import { ProductSidebar } from "../ProductSidebar";
 import { SidebarProvider } from "@/components/ui/sidebar";
+import { Button } from "@/components/ui/button";
+import { Eraser } from "lucide-react";
 
 interface ProductGridProps {
   products: ProductData[];
@@ -17,6 +19,7 @@ export const ProductGrid = ({ products, onImageProcessed }: ProductGridProps) =>
   const [opacity, setOpacity] = useState([100]);
   const [selectedProducts, setSelectedProducts] = useState<number[]>([]);
   const [filters, setFilters] = useState<Record<string, string>>({});
+  const [isBulkProcessing, setIsBulkProcessing] = useState(false);
 
   const handleRemoveBackground = async (index: number) => {
     setProcessingIndex(index);
@@ -49,6 +52,64 @@ export const ProductGrid = ({ products, onImageProcessed }: ProductGridProps) =>
     } finally {
       setProcessingIndex(null);
     }
+  };
+
+  const handleBulkRemoveBackground = async () => {
+    if (selectedProducts.length === 0) {
+      toast.error("Please select products first");
+      return;
+    }
+
+    setIsBulkProcessing(true);
+    let successCount = 0;
+    let errorCount = 0;
+
+    for (const index of selectedProducts) {
+      try {
+        setProcessingIndex(index);
+        const product = products[index];
+        
+        const { data, error } = await supabase.functions.invoke('remove-background', {
+          body: { imageUrl: product["image link"] }
+        });
+
+        if (error) throw error;
+        if (!data?.processedUrl) throw new Error("No processed image URL returned");
+
+        onImageProcessed(index, data.processedUrl);
+        successCount++;
+      } catch (error) {
+        console.error(`Error processing image at index ${index}:`, error);
+        errorCount++;
+      } finally {
+        setProcessingIndex(null);
+      }
+    }
+
+    setIsBulkProcessing(false);
+    if (successCount > 0) {
+      toast.success(`Successfully processed ${successCount} images`);
+    }
+    if (errorCount > 0) {
+      toast.error(`Failed to process ${errorCount} images`);
+    }
+  };
+
+  const handleClearBackground = (index: number) => {
+    onImageProcessed(index, "");
+    toast.success("Background cleared successfully!");
+  };
+
+  const handleBulkClearBackground = () => {
+    if (selectedProducts.length === 0) {
+      toast.error("Please select products first");
+      return;
+    }
+
+    selectedProducts.forEach(index => {
+      onImageProcessed(index, "");
+    });
+    toast.success(`Cleared background from ${selectedProducts.length} products`);
   };
 
   const handleDownloadOriginal = (imageUrl: string, title: string) => {
@@ -143,7 +204,7 @@ export const ProductGrid = ({ products, onImageProcessed }: ProductGridProps) =>
         
         <div className="flex-1 p-6">
           <div className="space-y-6">
-            <div className="flex justify-end">
+            <div className="flex justify-between items-center">
               <button
                 onClick={() => handleSelectAll(selectedProducts.length !== products.length)}
                 className="px-4 py-2 text-sm font-medium text-slate-600 hover:text-slate-900 bg-white/50 hover:bg-white/80 rounded-lg transition-colors"
@@ -152,6 +213,28 @@ export const ProductGrid = ({ products, onImageProcessed }: ProductGridProps) =>
                   ? "Deselect All"
                   : "Select All"}
               </button>
+
+              {selectedProducts.length > 0 && (
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    onClick={handleBulkRemoveBackground}
+                    disabled={isBulkProcessing}
+                    className="group"
+                  >
+                    <Eraser className="w-4 h-4 mr-2 text-slate-500 group-hover:text-violet-600" />
+                    Remove Background ({selectedProducts.length})
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={handleBulkClearBackground}
+                    className="group"
+                  >
+                    <Eraser className="w-4 h-4 mr-2 text-red-500 group-hover:text-red-600" />
+                    Clear Background ({selectedProducts.length})
+                  </Button>
+                </div>
+              )}
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
@@ -167,6 +250,7 @@ export const ProductGrid = ({ products, onImageProcessed }: ProductGridProps) =>
                   selectedColor={selectedColor}
                   opacity={opacity[0]}
                   handleRemoveBackground={handleRemoveBackground}
+                  handleClearBackground={handleClearBackground}
                   handleDownloadOriginal={handleDownloadOriginal}
                   handleDownloadWithBackground={handleDownloadWithBackground}
                 />

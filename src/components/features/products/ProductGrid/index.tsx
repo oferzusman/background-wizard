@@ -1,11 +1,10 @@
 import { useState } from "react";
 import { ProductData } from "../FileUpload";
 import { ProductCard } from "../ProductCard";
-import { ProductFilters } from "../ProductFilters";
-import { Button } from "@/components/ui/button";
-import { Slider } from "@/components/ui/slider";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase/client";
+import { ProductSidebar } from "../ProductSidebar";
+import { SidebarProvider } from "@/components/ui/sidebar";
 
 interface ProductGridProps {
   products: ProductData[];
@@ -18,8 +17,6 @@ export const ProductGrid = ({ products, onImageProcessed }: ProductGridProps) =>
   const [opacity, setOpacity] = useState([100]);
   const [selectedProducts, setSelectedProducts] = useState<number[]>([]);
   const [filters, setFilters] = useState<Record<string, string>>({});
-  
-  console.log("Rendering ProductGrid with products:", products);
 
   const handleRemoveBackground = async (index: number) => {
     setProcessingIndex(index);
@@ -115,15 +112,13 @@ export const ProductGrid = ({ products, onImageProcessed }: ProductGridProps) =>
 
   const handleSelectProduct = (index: number, selected: boolean) => {
     setSelectedProducts((prev) =>
-      selected
-        ? [...prev, index]
-        : prev.filter((i) => i !== index)
+      selected ? [...prev, index] : prev.filter((i) => i !== index)
     );
   };
 
   const filteredProducts = products.filter((product) => {
     return Object.entries(filters).every(([field, value]) => {
-      if (!value) return true;
+      if (!value || value === "all") return true;
       const productValue = String(product[field as keyof ProductData] || "").toLowerCase();
       return productValue.includes(value.toLowerCase());
     });
@@ -134,57 +129,52 @@ export const ProductGrid = ({ products, onImageProcessed }: ProductGridProps) =>
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <Button
-          variant="outline"
-          onClick={() => handleSelectAll(selectedProducts.length !== products.length)}
-        >
-          {selectedProducts.length === products.length
-            ? "Deselect All"
-            : "Select All"}
-        </Button>
-        <div className="space-x-2">
-          <input
-            type="color"
-            value={selectedColor}
-            onChange={(e) => setSelectedColor(e.target.value)}
-            className="w-8 h-8 cursor-pointer"
-          />
-          <Slider
-            value={opacity}
-            onValueChange={setOpacity}
-            max={100}
-            step={1}
-            className="w-32 inline-block align-middle ml-2"
-          />
+    <SidebarProvider>
+      <div className="flex min-h-screen w-full">
+        <ProductSidebar
+          products={products}
+          onFilterChange={setFilters}
+          filteredCount={filteredProducts.length}
+          selectedColor={selectedColor}
+          setSelectedColor={setSelectedColor}
+          opacity={opacity}
+          setOpacity={setOpacity}
+        />
+        
+        <div className="flex-1 p-6">
+          <div className="space-y-6">
+            <div className="flex justify-end">
+              <button
+                onClick={() => handleSelectAll(selectedProducts.length !== products.length)}
+                className="px-4 py-2 text-sm font-medium text-slate-600 hover:text-slate-900 bg-white/50 hover:bg-white/80 rounded-lg transition-colors"
+              >
+                {selectedProducts.length === products.length
+                  ? "Deselect All"
+                  : "Select All"}
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              {filteredProducts.map((product, index) => (
+                <ProductCard
+                  key={index}
+                  product={product}
+                  index={index}
+                  onImageProcessed={onImageProcessed}
+                  onSelect={handleSelectProduct}
+                  isSelected={selectedProducts.includes(index)}
+                  processingIndex={processingIndex}
+                  selectedColor={selectedColor}
+                  opacity={opacity[0]}
+                  handleRemoveBackground={handleRemoveBackground}
+                  handleDownloadOriginal={handleDownloadOriginal}
+                  handleDownloadWithBackground={handleDownloadWithBackground}
+                />
+              ))}
+            </div>
+          </div>
         </div>
       </div>
-
-      <ProductFilters 
-        products={products} 
-        onFilterChange={setFilters} 
-        filteredCount={filteredProducts.length}
-      />
-
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-        {filteredProducts.map((product, index) => (
-          <ProductCard
-            key={index}
-            product={product}
-            index={index}
-            onImageProcessed={onImageProcessed}
-            onSelect={handleSelectProduct}
-            isSelected={selectedProducts.includes(index)}
-            processingIndex={processingIndex}
-            selectedColor={selectedColor}
-            opacity={opacity}
-            handleRemoveBackground={handleRemoveBackground}
-            handleDownloadOriginal={handleDownloadOriginal}
-            handleDownloadWithBackground={handleDownloadWithBackground}
-          />
-        ))}
-      </div>
-    </div>
+    </SidebarProvider>
   );
 };

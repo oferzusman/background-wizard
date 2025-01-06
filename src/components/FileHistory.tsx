@@ -71,9 +71,10 @@ export const FileHistory = ({ onDataParsed }: FileHistoryProps) => {
       const parsedData = await parseFileContent(content, entry.file_type);
       onDataParsed(parsedData);
       toast.success("File reloaded successfully!");
+      navigate('/'); // Redirect to main view after successful reload
     } catch (error) {
       console.error("Error reloading file:", error);
-      toast.error("Failed to reload file");
+      toast.error(error instanceof Error ? error.message : "Error processing file");
     } finally {
       setIsLoading(false);
     }

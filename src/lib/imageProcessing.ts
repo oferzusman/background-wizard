@@ -66,7 +66,7 @@ export const removeBackground = async (imageElement: HTMLImageElement): Promise<
     const img = await createImageFromBlob(imageBlob);
     console.log('Successfully created new image from blob');
     
-    const segmenter = await pipeline('image-segmentation', 'Xenova/segformer-b2-finetuned-ade-512-512', {
+    const segmenter = await pipeline('image-segmentation', 'Xenova/segformer-b0-finetuned-ade-512-512', {
       device: 'webgpu',
       progress_callback: (progressInfo) => {
         // Handle both download and initialization progress

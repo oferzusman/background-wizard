@@ -110,7 +110,7 @@ export const removeBackground = async (imageElement: HTMLImageElement): Promise<
       );
     });
   } catch (error) {
-    console.error('Error removing background:', error);
+    console.error('Error in removeBackground:', error);
     throw error;
   }
 };

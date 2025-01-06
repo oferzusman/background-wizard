@@ -18,6 +18,7 @@ export type Database = {
           original_filename: string | null
           status: string | null
           uploaded_at: string | null
+          user_id: string | null
         }
         Insert: {
           file_type: string
@@ -27,6 +28,7 @@ export type Database = {
           original_filename?: string | null
           status?: string | null
           uploaded_at?: string | null
+          user_id?: string | null
         }
         Update: {
           file_type?: string
@@ -36,6 +38,7 @@ export type Database = {
           original_filename?: string | null
           status?: string | null
           uploaded_at?: string | null
+          user_id?: string | null
         }
         Relationships: []
       }
@@ -46,6 +49,7 @@ export type Database = {
           file_url: string | null
           id: string
           uploaded_at: string | null
+          user_id: string | null
         }
         Insert: {
           file_content?: Json | null
@@ -53,6 +57,7 @@ export type Database = {
           file_url?: string | null
           id?: string
           uploaded_at?: string | null
+          user_id?: string | null
         }
         Update: {
           file_content?: Json | null
@@ -60,6 +65,7 @@ export type Database = {
           file_url?: string | null
           id?: string
           uploaded_at?: string | null
+          user_id?: string | null
         }
         Relationships: []
       }
@@ -69,18 +75,21 @@ export type Database = {
           id: string
           original_url: string
           processed_url: string | null
+          user_id: string | null
         }
         Insert: {
           created_at?: string | null
           id?: string
           original_url: string
           processed_url?: string | null
+          user_id?: string | null
         }
         Update: {
           created_at?: string | null
           id?: string
           original_url?: string
           processed_url?: string | null
+          user_id?: string | null
         }
         Relationships: []
       }
@@ -94,6 +103,7 @@ export type Database = {
           product_id: string | null
           product_type: string | null
           title: string
+          user_id: string | null
         }
         Insert: {
           created_at?: string | null
@@ -104,6 +114,7 @@ export type Database = {
           product_id?: string | null
           product_type?: string | null
           title: string
+          user_id?: string | null
         }
         Update: {
           created_at?: string | null
@@ -114,6 +125,28 @@ export type Database = {
           product_id?: string | null
           product_type?: string | null
           title?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          created_at: string | null
+          id: string
+          role: Database["public"]["Enums"]["app_role"] | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"] | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"] | null
+          user_id?: string | null
         }
         Relationships: []
       }
@@ -125,7 +158,7 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      app_role: "super_admin" | "admin" | "user"
     }
     CompositeTypes: {
       [_ in never]: never

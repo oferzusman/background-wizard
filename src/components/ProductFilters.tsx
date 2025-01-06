@@ -19,7 +19,7 @@ export const ProductFilters = ({ onFilterChange, products, filteredCount }: Prod
   // Get unique product types and count products for each type
   const productTypes = Array.from(
     products.reduce((acc, product) => {
-      const type = product.product_type?.toString() || "Uncategorized";
+      const type = product.product_type?.toString() || "uncategorized";
       acc.set(type, (acc.get(type) || 0) + 1);
       return acc;
     }, new Map<string, number>())
@@ -55,7 +55,7 @@ export const ProductFilters = ({ onFilterChange, products, filteredCount }: Prod
               <SelectValue placeholder="Select product type" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">All Types</SelectItem>
+              <SelectItem value="all">All Types</SelectItem>
               {productTypes.map(([type, count]) => (
                 <SelectItem key={type} value={type}>
                   {type} ({count})

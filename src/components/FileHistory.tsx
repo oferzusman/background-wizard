@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { parseFileContent } from "@/utils/fileParser";
+import { useNavigate } from "react-router-dom";
 
 interface FileHistoryProps {
   onDataParsed: (data: any[]) => void;
@@ -21,12 +22,28 @@ interface HistoryEntry {
 export const FileHistory = ({ onDataParsed }: FileHistoryProps) => {
   const [history, setHistory] = useState<HistoryEntry[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const navigate = useNavigate();
 
   useEffect(() => {
-    loadHistory();
-  }, []);
+    const checkSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        navigate('/login');
+        return;
+      }
+      loadHistory();
+    };
+
+    checkSession();
+  }, [navigate]);
 
   const loadHistory = async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      navigate('/login');
+      return;
+    }
+
     const { data, error } = await supabase
       .from("file_history")
       .select("*")
@@ -35,10 +52,13 @@ export const FileHistory = ({ onDataParsed }: FileHistoryProps) => {
     if (error) {
       console.error("Error loading history:", error);
       toast.error("Failed to load history");
+      if (error.code === "42501") { // RLS error code
+        navigate('/login');
+      }
       return;
     }
 
-    setHistory(data);
+    setHistory(data || []);
   };
 
   const handleReload = async (entry: HistoryEntry) => {

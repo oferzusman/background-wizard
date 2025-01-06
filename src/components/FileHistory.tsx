@@ -16,6 +16,7 @@ interface HistoryEntry {
   is_url: boolean;
   original_filename: string;
   status: string;
+  file_content?: any;
 }
 
 export const FileHistory = ({ onDataParsed }: FileHistoryProps) => {
@@ -27,18 +28,41 @@ export const FileHistory = ({ onDataParsed }: FileHistoryProps) => {
   }, []);
 
   const loadHistory = async () => {
-    const { data, error } = await supabase
+    // First get history entries from file_history
+    const { data: historyData, error: historyError } = await supabase
       .from("file_history")
       .select("*")
       .order("uploaded_at", { ascending: false });
 
-    if (error) {
-      console.error("Error loading history:", error);
+    if (historyError) {
+      console.error("Error loading history:", historyError);
       toast.error("Failed to load history");
       return;
     }
 
-    setHistory(data);
+    // Then get corresponding file_uploads data
+    const { data: uploadsData, error: uploadsError } = await supabase
+      .from("file_uploads")
+      .select("*");
+
+    if (uploadsError) {
+      console.error("Error loading file uploads:", uploadsError);
+      toast.error("Failed to load file data");
+      return;
+    }
+
+    // Merge the data from both tables
+    const mergedHistory = historyData.map((historyEntry) => {
+      const fileUpload = uploadsData.find(
+        (upload) => upload.file_url === historyEntry.file_url
+      );
+      return {
+        ...historyEntry,
+        file_content: fileUpload?.file_content,
+      };
+    });
+
+    setHistory(mergedHistory);
   };
 
   const handleReload = async (entry: HistoryEntry) => {
@@ -46,9 +70,23 @@ export const FileHistory = ({ onDataParsed }: FileHistoryProps) => {
     console.log("Reloading entry:", entry);
 
     try {
-      const response = await fetch(entry.file_url);
-      const content = await response.text();
-      const parsedData = await parseFileContent(content, entry.file_type);
+      let parsedData;
+      
+      // If we have file_content stored, use it directly
+      if (entry.file_content) {
+        console.log("Using stored file content:", entry.file_content);
+        parsedData = entry.file_content;
+      } else if (entry.file_url) {
+        // Otherwise fetch and parse the file
+        console.log("Fetching file from URL:", entry.file_url);
+        const response = await fetch(entry.file_url);
+        const content = await response.text();
+        parsedData = await parseFileContent(content, entry.file_type);
+      } else {
+        throw new Error("No file content or URL available");
+      }
+
+      console.log("Parsed data:", parsedData);
       onDataParsed(parsedData);
       toast.success("File reloaded successfully!");
     } catch (error) {

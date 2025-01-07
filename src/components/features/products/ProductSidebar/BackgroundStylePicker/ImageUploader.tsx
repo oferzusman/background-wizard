@@ -21,6 +21,15 @@ export const ImageUploader = ({ onImageUpload }: ImageUploaderProps) => {
     setIsUploading(true);
     
     try {
+      // Get current user
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      
+      if (userError || !user) {
+        console.error('Auth error:', userError);
+        toast.error('Please log in to upload images');
+        return;
+      }
+
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
         console.log('Processing file:', file.name);
@@ -47,11 +56,12 @@ export const ImageUploader = ({ onImageUpload }: ImageUploaderProps) => {
 
         console.log('Generated public URL:', publicUrl);
 
-        // Save reference to database
+        // Save reference to database with user_id
         const { error: dbError } = await supabase
           .from('background_images')
           .insert({
-            url: publicUrl
+            url: publicUrl,
+            user_id: user.id
           });
 
         if (dbError) {

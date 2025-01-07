@@ -1,9 +1,16 @@
-import { Card } from "@/components/ui/card";
+import { useState } from "react";
+import { ProductData } from "../FileUpload";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { ProductData } from "../FileUpload";
-import { GoogleDriveUpload } from "../GoogleDriveUpload";
-import { Download, Eraser, Trash2 } from "lucide-react";
+import { motion } from "framer-motion";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Download, Eraser, Image, XCircle } from "lucide-react";
 
 interface ProductCardProps {
   product: ProductData;
@@ -14,7 +21,7 @@ interface ProductCardProps {
   processingIndex: number | null;
   selectedColor: string;
   opacity: number;
-  handleRemoveBackground: (index: number) => void;
+  handleRemoveBackground: (index: number) => Promise<void>;
   handleClearBackground: (index: number) => void;
   handleDownloadOriginal: (imageUrl: string, title: string) => void;
   handleDownloadWithBackground: (
@@ -22,7 +29,7 @@ interface ProductCardProps {
     title: string,
     backgroundColor: string,
     opacity: number
-  ) => void;
+  ) => Promise<void>;
 }
 
 export const ProductCard = ({
@@ -39,118 +46,147 @@ export const ProductCard = ({
   handleDownloadOriginal,
   handleDownloadWithBackground,
 }: ProductCardProps) => {
-  const isProcessing = processingIndex === index;
-  const hasProcessedImage = !!product.processedImageUrl;
-
   const getBackgroundStyle = () => {
-    if (!product.processedImageUrl) return {};
+    const opacityHex = Math.round(opacity * 2.55).toString(16).padStart(2, "0");
     
     if (selectedColor.startsWith('linear-gradient')) {
       return {
         background: selectedColor,
-        opacity: opacity / 100
+      };
+    } else if (selectedColor.startsWith('url')) {
+      return {
+        backgroundImage: selectedColor,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+      };
+    } else {
+      return {
+        backgroundColor: `${selectedColor}${opacityHex}`,
       };
     }
-    
-    return {
-      backgroundColor: `${selectedColor}${Math.round(opacity * 2.55)
-        .toString(16)
-        .padStart(2, '0')}`
-    };
   };
 
   return (
-    <Card className="overflow-hidden">
-      <div className="relative aspect-square">
-        {/* Base layer for background color */}
-        <div 
-          className="absolute inset-0 transition-colors duration-200"
-          style={hasProcessedImage ? getBackgroundStyle() : {}}
-        />
-        
-        {/* Image container with proper sizing */}
-        <div className="absolute inset-0 p-4 flex items-center justify-center">
-          <img
-            src={product.processedImageUrl || product["image link"]}
-            alt={product.title}
-            className="max-w-full max-h-full object-contain"
-            style={{ zIndex: 1 }}
-          />
-        </div>
-
-        {/* Loading spinner */}
-        {isProcessing && (
-          <div className="absolute inset-0 bg-white/80 backdrop-blur-sm flex items-center justify-center" style={{ zIndex: 50 }}>
-            <div className="w-16 h-16 border-4 border-violet-200 border-t-violet-600 rounded-full animate-spin" />
-          </div>
-        )}
-
-        {/* Checkbox */}
-        <div className="absolute top-2 left-2" style={{ zIndex: 40 }}>
+    <motion.div
+      initial={{ opacity: 0, scale: 0.95 }}
+      animate={{ opacity: 1, scale: 1 }}
+      transition={{ duration: 0.3, delay: index * 0.05 }}
+      className={`bg-white rounded-xl shadow-sm overflow-hidden border transition-all duration-200 ${
+        isSelected ? "border-violet-400 ring-2 ring-violet-100" : "border-transparent hover:border-slate-200"
+      }`}
+    >
+      <div className="relative aspect-square group">
+        <div className="absolute top-3 left-3 z-10">
           <Checkbox
             checked={isSelected}
             onCheckedChange={(checked) => onSelect(index, checked as boolean)}
+            className="data-[state=checked]:bg-violet-600 data-[state=checked]:border-violet-600"
           />
         </div>
+        {product.processedImageUrl && (
+          <div className="absolute top-3 right-3 z-10 flex gap-2">
+            <button
+              onClick={() => handleClearBackground(index)}
+              className="bg-red-100 p-1.5 rounded-full hover:bg-red-200 transition-colors"
+            >
+              <XCircle className="w-4 h-4 text-red-600" />
+            </button>
+            <div className="bg-green-100 p-1.5 rounded-full">
+              <Eraser className="w-4 h-4 text-green-600" />
+            </div>
+          </div>
+        )}
+        {product.processedImageUrl ? (
+          <div
+            className="w-full h-full relative"
+            style={getBackgroundStyle()}
+          >
+            <img
+              src={product.processedImageUrl}
+              alt={product.title}
+              className="w-full h-full object-contain p-4 absolute inset-0 transition-transform duration-300 group-hover:scale-105"
+            />
+          </div>
+        ) : (
+          <img
+            src={product["image link"]}
+            alt={product.title}
+            className="w-full h-full object-contain p-4 transition-transform duration-300 group-hover:scale-105"
+          />
+        )}
+        {processingIndex === index && (
+          <div className="absolute inset-0 bg-white/80 backdrop-blur-sm flex items-center justify-center">
+            <div className="w-16 h-16 border-4 border-violet-200 border-t-violet-600 rounded-full animate-spin" />
+          </div>
+        )}
       </div>
-      
-      <div className="p-4">
-        <h3 className="font-medium text-sm mb-1 truncate" title={product.title}>
+
+      <div className="p-4 space-y-3">
+        <h3 className="font-medium text-slate-900 text-center truncate">
           {product.title}
         </h3>
         {product.product_type && (
-          <p className="text-sm text-slate-500 mb-4">{product.product_type}</p>
+          <p className="text-sm text-slate-600 text-center">{product.product_type}</p>
         )}
-        
-        <div className="space-y-2">
+        {product.id && (
+          <p className="text-sm text-slate-500 text-center">ID: {product.id}</p>
+        )}
+
+        <div className="flex gap-2 justify-center">
           <Button
             variant="outline"
             size="sm"
-            className="w-full"
             onClick={() => handleRemoveBackground(index)}
-            disabled={isProcessing}
+            disabled={processingIndex === index}
+            className="group"
           >
-            <Eraser className="w-4 h-4 mr-2" />
-            {isProcessing ? "Processing..." : "Remove Background"}
+            <Eraser className="w-4 h-4 mr-2 text-slate-500 group-hover:text-violet-600" />
+            Remove Background
           </Button>
-
-          {hasProcessedImage && (
-            <>
-              <Button
-                variant="outline"
-                size="sm"
-                className="w-full"
-                onClick={() => handleClearBackground(index)}
-              >
-                <Trash2 className="w-4 h-4 mr-2" />
-                Clear Background
-              </Button>
-
-              <Button
-                variant="outline"
-                size="sm"
-                className="w-full"
-                onClick={() =>
-                  handleDownloadWithBackground(
-                    product.processedImageUrl!,
-                    product.title,
-                    selectedColor,
-                    opacity
-                  )
-                }
-              >
-                <Download className="w-4 h-4 mr-2" />
-                Download with Background
-              </Button>
-
-              <GoogleDriveUpload 
-                imageUrl={product.processedImageUrl} 
-                fileName={`${product.title}_processed.png`}
-              />
-            </>
+          {product.processedImageUrl && (
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button variant="outline" size="sm" className="group">
+                  <Download className="w-4 h-4 mr-2 text-slate-500 group-hover:text-violet-600" />
+                  Download
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Choose Download Option</DialogTitle>
+                </DialogHeader>
+                <div className="flex flex-col gap-4 pt-4">
+                  <Button
+                    onClick={() =>
+                      handleDownloadOriginal(product.processedImageUrl!, product.title)
+                    }
+                    variant="outline"
+                    className="group"
+                  >
+                    <Image className="w-4 h-4 mr-2 text-slate-500 group-hover:text-violet-600" />
+                    Download with Transparent Background
+                  </Button>
+                  <Button
+                    onClick={() =>
+                      handleDownloadWithBackground(
+                        product.processedImageUrl!,
+                        product.title,
+                        selectedColor,
+                        opacity
+                      )
+                    }
+                    variant="default"
+                    className="bg-violet-600 hover:bg-violet-700"
+                  >
+                    <Image className="w-4 h-4 mr-2" />
+                    Download with Custom Background
+                  </Button>
+                </div>
+              </DialogContent>
+            </Dialog>
           )}
         </div>
       </div>
-    </Card>
+    </motion.div>
   );
 };

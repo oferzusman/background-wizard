@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { FileUpload } from "@/components/FileUpload";
+import { FileUpload, ProductData } from "@/components/FileUpload";
 import { ProductGrid } from "@/components/ProductGrid";
 import { StepNavigation } from "@/components/StepNavigation";
 import { CloudUpload } from "lucide-react";
@@ -7,6 +7,7 @@ import { CloudUpload } from "lucide-react";
 const Index = () => {
   const [currentStep, setCurrentStep] = useState(1);
   const [completedSteps, setCompletedSteps] = useState<number[]>([]);
+  const [products, setProducts] = useState<ProductData[]>([]);
 
   const steps = [
     {
@@ -27,9 +28,21 @@ const Index = () => {
     setCurrentStep(step);
   };
 
-  const handleFileProcessed = () => {
-    setCompletedSteps((prev) => [...prev, 1, 2]);
-    setCurrentStep(3);
+  const handleDataParsed = (data: ProductData[]) => {
+    setProducts(data);
+    setCompletedSteps((prev) => [...prev, 1]);
+    setCurrentStep(2);
+  };
+
+  const handleImageProcessed = (index: number, newImageUrl: string) => {
+    setProducts(prevProducts => {
+      const newProducts = [...prevProducts];
+      newProducts[index] = {
+        ...newProducts[index],
+        processedImageUrl: newImageUrl
+      };
+      return newProducts;
+    });
   };
 
   return (
@@ -43,9 +56,14 @@ const Index = () => {
       
       <div className="mt-8">
         {currentStep === 1 && (
-          <FileUpload onFileProcessed={handleFileProcessed} />
+          <FileUpload onDataParsed={handleDataParsed} />
         )}
-        {currentStep === 2 && <ProductGrid />}
+        {currentStep === 2 && (
+          <ProductGrid 
+            products={products}
+            onImageProcessed={handleImageProcessed}
+          />
+        )}
         {currentStep === 3 && (
           <div className="flex flex-col items-center justify-center p-8 text-center">
             <CloudUpload className="h-16 w-16 text-violet-600 mb-4" />

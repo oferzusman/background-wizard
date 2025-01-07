@@ -13,6 +13,10 @@ const steps = [
     title: "Manage Products",
     description: "Filter and process your product images",
   },
+  {
+    title: "Upload files to Cloud",
+    description: "Upload your processed files to cloud storage",
+  },
 ];
 
 const Index = () => {

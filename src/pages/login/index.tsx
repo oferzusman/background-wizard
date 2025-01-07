@@ -1,11 +1,14 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Auth } from "@supabase/auth-ui-react";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/lib/supabase/client";
 import { ThemeSupa } from "@supabase/auth-ui-shared";
+import { toast } from "sonner";
+import { AuthError, AuthApiError } from "@supabase/supabase-js";
 
 const Login = () => {
   const navigate = useNavigate();
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     // Check if user is already logged in
@@ -20,8 +23,15 @@ const Login = () => {
     // Set up auth state change listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       console.log("Auth state changed:", event, session?.user?.id);
-      if (session) {
+      
+      if (event === 'SIGNED_IN') {
+        console.log("User signed in successfully");
         navigate("/");
+      } else if (event === 'SIGNED_OUT') {
+        console.log("User signed out");
+        setError(null);
+      } else if (event === 'USER_UPDATED') {
+        console.log("User updated");
       }
     });
 
@@ -32,6 +42,23 @@ const Login = () => {
       subscription.unsubscribe();
     };
   }, [navigate]);
+
+  const getErrorMessage = (error: AuthError) => {
+    if (error instanceof AuthApiError) {
+      switch (error.status) {
+        case 400:
+          if (error.message.includes("Invalid login credentials")) {
+            return "Invalid email or password. Please check your credentials and try again.";
+          }
+          return "Invalid request. Please check your input and try again.";
+        case 422:
+          return "Invalid email format. Please enter a valid email address.";
+        default:
+          return error.message;
+      }
+    }
+    return "An unexpected error occurred. Please try again.";
+  };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-slate-50 p-4">
@@ -59,7 +86,19 @@ const Login = () => {
             }
           }}
           providers={[]}
+          onError={(error) => {
+            console.error("Auth error:", error);
+            const message = getErrorMessage(error);
+            setError(message);
+            toast.error(message);
+          }}
         />
+
+        {error && (
+          <div className="mt-4 p-3 text-sm text-red-600 bg-red-50 rounded-md">
+            {error}
+          </div>
+        )}
       </div>
     </div>
   );

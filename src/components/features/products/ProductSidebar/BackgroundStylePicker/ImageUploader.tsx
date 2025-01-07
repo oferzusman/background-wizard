@@ -1,9 +1,10 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Image, Upload } from "lucide-react";
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import { ImageLibrary } from "./ImageLibrary";
 import { supabase } from "@/lib/supabase/client";
+import { toast } from "sonner";
 
 interface ImageUploaderProps {
   onImageUpload: (file: File) => void;
@@ -11,41 +12,66 @@ interface ImageUploaderProps {
 
 export const ImageUploader = ({ onImageUpload }: ImageUploaderProps) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isUploading, setIsUploading] = useState(false);
 
   const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
-    if (!files) return;
+    if (!files || files.length === 0) return;
 
-    for (let i = 0; i < files.length; i++) {
-      const file = files[i];
-      try {
+    setIsUploading(true);
+    
+    try {
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        console.log('Processing file:', file.name);
+
         // Upload to Supabase Storage
         const fileName = `${crypto.randomUUID()}-${file.name}`;
+        console.log('Uploading to storage with filename:', fileName);
+        
         const { data: uploadData, error: uploadError } = await supabase.storage
-          .from('background-images')
+          .from('merchant_saas')
           .upload(fileName, file);
 
-        if (uploadError) throw uploadError;
+        if (uploadError) {
+          console.error('Storage upload error:', uploadError);
+          throw uploadError;
+        }
+
+        console.log('File uploaded successfully:', uploadData);
 
         // Get public URL
         const { data: { publicUrl } } = supabase.storage
-          .from('background-images')
+          .from('merchant_saas')
           .getPublicUrl(fileName);
+
+        console.log('Generated public URL:', publicUrl);
 
         // Save reference to database
         const { error: dbError } = await supabase
           .from('background_images')
           .insert({
-            url: publicUrl,
-            user_id: (await supabase.auth.getUser()).data.user?.id
+            url: publicUrl
           });
 
-        if (dbError) throw dbError;
+        if (dbError) {
+          console.error('Database insert error:', dbError);
+          throw dbError;
+        }
+
+        console.log('Database record created successfully');
 
         // Call the original onImageUpload
         onImageUpload(file);
-      } catch (error) {
-        console.error('Error uploading image:', error);
+        toast.success(`Uploaded ${file.name} successfully`);
+      }
+    } catch (error) {
+      console.error('Error in image upload process:', error);
+      toast.error('Failed to upload image');
+    } finally {
+      setIsUploading(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
       }
     }
   };
@@ -64,17 +90,21 @@ export const ImageUploader = ({ onImageUpload }: ImageUploaderProps) => {
         variant="outline"
         className="w-full"
         onClick={() => fileInputRef.current?.click()}
+        disabled={isUploading}
       >
         <Upload className="w-4 h-4 mr-2" />
-        Upload Images
+        {isUploading ? 'Uploading...' : 'Upload Images'}
       </Button>
       <ImageLibrary onSelectImage={(url) => {
-        // Create a File object from the URL
         fetch(url)
           .then(res => res.blob())
           .then(blob => {
             const file = new File([blob], "image.jpg", { type: "image/jpeg" });
             onImageUpload(file);
+          })
+          .catch(error => {
+            console.error('Error converting URL to file:', error);
+            toast.error('Failed to load image');
           });
       }} />
     </div>

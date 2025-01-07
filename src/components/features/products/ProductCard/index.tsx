@@ -42,11 +42,9 @@ export const ProductCard = ({
   const isProcessing = processingIndex === index;
   const hasProcessedImage = !!product.processedImageUrl;
 
-  // Function to determine the background style
   const getBackgroundStyle = () => {
     if (!product.processedImageUrl) return {};
     
-    // If the selectedColor starts with 'linear-gradient', use it directly
     if (selectedColor.startsWith('linear-gradient')) {
       return {
         background: selectedColor,
@@ -54,7 +52,6 @@ export const ProductCard = ({
       };
     }
     
-    // Otherwise, use the color with opacity
     return {
       backgroundColor: `${selectedColor}${Math.round(opacity * 2.55)
         .toString(16)
@@ -65,32 +62,31 @@ export const ProductCard = ({
   return (
     <Card className="overflow-hidden">
       <div className="relative aspect-square">
-        {/* Background layer */}
-        {hasProcessedImage && (
-          <div 
-            className="absolute inset-0"
-            style={getBackgroundStyle()}
-          />
-        )}
+        {/* Base layer for background color */}
+        <div 
+          className="absolute inset-0 transition-colors duration-200"
+          style={hasProcessedImage ? getBackgroundStyle() : {}}
+        />
         
-        {/* Image container */}
-        <div className="absolute inset-0 flex items-center justify-center">
+        {/* Image container with proper sizing */}
+        <div className="absolute inset-0 p-4 flex items-center justify-center">
           <img
             src={product.processedImageUrl || product["image link"]}
             alt={product.title}
             className="max-w-full max-h-full object-contain"
+            style={{ zIndex: 1 }}
           />
         </div>
 
         {/* Loading spinner */}
         {isProcessing && (
-          <div className="absolute inset-0 bg-white/80 backdrop-blur-sm flex items-center justify-center">
+          <div className="absolute inset-0 bg-white/80 backdrop-blur-sm flex items-center justify-center" style={{ zIndex: 50 }}>
             <div className="w-16 h-16 border-4 border-violet-200 border-t-violet-600 rounded-full animate-spin" />
           </div>
         )}
 
-        {/* Checkbox layer */}
-        <div className="absolute top-2 left-2">
+        {/* Checkbox */}
+        <div className="absolute top-2 left-2" style={{ zIndex: 40 }}>
           <Checkbox
             checked={isSelected}
             onCheckedChange={(checked) => onSelect(index, checked as boolean)}

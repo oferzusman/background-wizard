@@ -6,7 +6,7 @@ import {
   SidebarGroupContent,
 } from "@/components/ui/sidebar";
 import { ProductFilters } from "../ProductFilters";
-import { Palette, Paintbrush, Image } from "lucide-react";
+import { Palette, Paintbrush, Image, Upload } from "lucide-react";
 import { Slider } from "@/components/ui/slider";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -21,6 +21,7 @@ interface ProductSidebarProps {
   setSelectedColor: (color: string) => void;
   opacity: number[];
   setOpacity: (opacity: number[]) => void;
+  onReset?: () => void;
 }
 
 const gradients = [
@@ -40,6 +41,7 @@ export function ProductSidebar({
   setSelectedColor,
   opacity,
   setOpacity,
+  onReset,
 }: ProductSidebarProps) {
   const [activeTab, setActiveTab] = useState("solid");
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -65,6 +67,25 @@ export function ProductSidebar({
   return (
     <Sidebar>
       <SidebarContent>
+        {/* Header with Counter and Upload Button */}
+        <div className="p-4 flex items-center justify-between bg-white/50 border-b border-slate-200">
+          <div className="flex items-center gap-2">
+            <span className="text-2xl font-bold text-violet-600">{products.length}</span>
+            <span className="text-sm text-slate-600">Products Loaded</span>
+          </div>
+          {onReset && (
+            <Button
+              onClick={onReset}
+              variant="outline"
+              size="sm"
+              className="flex items-center gap-2"
+            >
+              <Upload className="w-4 h-4" />
+              Upload New File
+            </Button>
+          )}
+        </div>
+
         {/* Product Counter */}
         <SidebarGroup>
           <SidebarGroupLabel>Products</SidebarGroupLabel>

@@ -68,29 +68,29 @@ export const ProductCard = ({
         {/* Background layer */}
         {hasProcessedImage && (
           <div 
-            className="absolute inset-0 transition-all duration-300 z-0"
+            className="absolute inset-0"
             style={getBackgroundStyle()}
           />
         )}
         
-        {/* Image layer */}
-        <div className="absolute inset-0 z-10">
+        {/* Image container */}
+        <div className="absolute inset-0 flex items-center justify-center">
           <img
             src={product.processedImageUrl || product["image link"]}
             alt={product.title}
-            className="w-full h-full object-contain"
+            className="max-w-full max-h-full object-contain"
           />
         </div>
 
         {/* Loading spinner */}
         {isProcessing && (
-          <div className="absolute inset-0 bg-white/80 backdrop-blur-sm flex items-center justify-center z-30">
+          <div className="absolute inset-0 bg-white/80 backdrop-blur-sm flex items-center justify-center">
             <div className="w-16 h-16 border-4 border-violet-200 border-t-violet-600 rounded-full animate-spin" />
           </div>
         )}
 
         {/* Checkbox layer */}
-        <div className="absolute top-2 left-2 z-20">
+        <div className="absolute top-2 left-2">
           <Checkbox
             checked={isSelected}
             onCheckedChange={(checked) => onSelect(index, checked as boolean)}

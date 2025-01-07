@@ -20,6 +20,7 @@ export const ProductGrid = ({ products, onImageProcessed }: ProductGridProps) =>
   const [selectedProducts, setSelectedProducts] = useState<number[]>([]);
   const [filters, setFilters] = useState<Record<string, string>>({});
   const [isBulkUploading, setIsBulkUploading] = useState(false);
+  const [isBulkProcessing, setIsBulkProcessing] = useState(false);
   
   console.log("Rendering ProductGrid with products:", products);
 
@@ -53,6 +54,38 @@ export const ProductGrid = ({ products, onImageProcessed }: ProductGridProps) =>
       toast.error(error instanceof Error ? error.message : "Error processing image");
     } finally {
       setProcessingIndex(null);
+    }
+  };
+
+  const handleBulkRemoveBackground = async () => {
+    if (selectedProducts.length === 0) {
+      toast.error("Please select products first");
+      return;
+    }
+
+    setIsBulkProcessing(true);
+    let successCount = 0;
+    let errorCount = 0;
+
+    try {
+      for (const index of selectedProducts) {
+        try {
+          await handleRemoveBackground(index);
+          successCount++;
+        } catch (error) {
+          console.error('Error processing image:', error);
+          errorCount++;
+        }
+      }
+
+      if (successCount > 0) {
+        toast.success(`Successfully processed ${successCount} images`);
+      }
+      if (errorCount > 0) {
+        toast.error(`Failed to process ${errorCount} images`);
+      }
+    } finally {
+      setIsBulkProcessing(false);
     }
   };
 
@@ -96,6 +129,66 @@ export const ProductGrid = ({ products, onImageProcessed }: ProductGridProps) =>
       }
     } finally {
       setIsBulkUploading(false);
+    }
+  };
+
+  const handleClearBackground = (index: number) => {
+    onImageProcessed(index, "");
+    toast.success("Background cleared successfully!");
+  };
+
+  const handleDownloadOriginal = (imageUrl: string, title: string) => {
+    const link = document.createElement("a");
+    link.href = imageUrl;
+    link.download = `${title}-processed.png`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const handleDownloadWithBackground = async (
+    imageUrl: string,
+    title: string,
+    backgroundColor: string,
+    opacity: number
+  ) => {
+    try {
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      if (!ctx) throw new Error('Could not get canvas context');
+
+      const img = new Image();
+      img.crossOrigin = "anonymous";
+      
+      await new Promise((resolve, reject) => {
+        img.onload = resolve;
+        img.onerror = reject;
+        img.src = imageUrl;
+      });
+
+      canvas.width = img.width;
+      canvas.height = img.height;
+
+      ctx.fillStyle = backgroundColor + Math.round(opacity * 2.55).toString(16).padStart(2, '0');
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      ctx.drawImage(img, 0, 0);
+
+      canvas.toBlob((blob) => {
+        if (blob) {
+          const url = URL.createObjectURL(blob);
+          const link = document.createElement('a');
+          link.href = url;
+          link.download = `${title}-with-background.png`;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          URL.revokeObjectURL(url);
+        }
+      }, 'image/png');
+    } catch (error) {
+      console.error('Error creating image with background:', error);
+      toast.error('Failed to download image with background');
     }
   };
 
@@ -186,6 +279,7 @@ export const ProductGrid = ({ products, onImageProcessed }: ProductGridProps) =>
                   selectedColor={selectedColor}
                   opacity={opacity[0]}
                   handleRemoveBackground={handleRemoveBackground}
+                  handleClearBackground={handleClearBackground}
                   handleDownloadOriginal={handleDownloadOriginal}
                   handleDownloadWithBackground={handleDownloadWithBackground}
                 />

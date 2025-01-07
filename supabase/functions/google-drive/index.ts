@@ -6,10 +6,6 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-const GOOGLE_TOKEN_ENDPOINT = 'https://oauth2.googleapis.com/token'
-const GOOGLE_DRIVE_API = 'https://www.googleapis.com/drive/v3/files'
-const GOOGLE_UPLOAD_API = 'https://www.googleapis.com/upload/drive/v3/files'
-
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
@@ -17,6 +13,7 @@ serve(async (req) => {
 
   try {
     const { imageUrl, fileName } = await req.json()
+    console.log('Received request to upload:', { imageUrl, fileName })
     
     if (!imageUrl) {
       throw new Error('No image URL provided')
@@ -28,9 +25,10 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
-    // Get Google credentials from Supabase secrets
+    // Get Google credentials
     const clientId = Deno.env.get('GOOGLE_CLIENT_ID')
     const clientSecret = Deno.env.get('GOOGLE_CLIENT_SECRET')
+    const refreshToken = Deno.env.get('GOOGLE_REFRESH_TOKEN')
 
     if (!clientId || !clientSecret) {
       throw new Error('Google credentials not configured')
@@ -44,20 +42,22 @@ serve(async (req) => {
     const imageBlob = await imageResponse.blob()
 
     // Get access token using client credentials
-    const tokenResponse = await fetch(GOOGLE_TOKEN_ENDPOINT, {
+    const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
       },
       body: new URLSearchParams({
-        grant_type: 'client_credentials',
         client_id: clientId,
         client_secret: clientSecret,
-        scope: 'https://www.googleapis.com/auth/drive.file',
+        refresh_token: refreshToken || '',
+        grant_type: 'refresh_token',
       }),
     })
 
     if (!tokenResponse.ok) {
+      const error = await tokenResponse.text()
+      console.error('Token response error:', error)
       throw new Error('Failed to get access token')
     }
 
@@ -69,30 +69,50 @@ serve(async (req) => {
       mimeType: 'image/png',
     }
 
+    // Create multipart request
+    const boundary = '-------314159265358979323846';
+    const delimiter = "\r\n--" + boundary + "\r\n";
+    const close_delim = "\r\n--" + boundary + "--";
+
+    const multipartRequestBody =
+      delimiter +
+      'Content-Type: application/json\r\n\r\n' +
+      JSON.stringify(metadata) +
+      delimiter +
+      'Content-Type: image/png\r\n\r\n';
+
+    // Convert image blob to array buffer
+    const imageArrayBuffer = await imageBlob.arrayBuffer()
+
+    // Combine metadata and image data
+    const requestBody = new Uint8Array([
+      ...new TextEncoder().encode(multipartRequestBody),
+      ...new Uint8Array(imageArrayBuffer),
+      ...new TextEncoder().encode(close_delim)
+    ])
+
     // Upload to Google Drive
-    const uploadResponse = await fetch(`${GOOGLE_UPLOAD_API}?uploadType=multipart`, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${access_token}`,
-        'Content-Type': 'multipart/related; boundary=boundary',
-      },
-      body: `--boundary
-Content-Type: application/json
-
-${JSON.stringify(metadata)}
-
---boundary
-Content-Type: image/png
-
-${imageBlob}
---boundary--`,
-    })
+    const uploadResponse = await fetch(
+      'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart',
+      {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${access_token}`,
+          'Content-Type': `multipart/related; boundary=${boundary}`,
+          'Content-Length': requestBody.length.toString(),
+        },
+        body: requestBody,
+      }
+    )
 
     if (!uploadResponse.ok) {
+      const error = await uploadResponse.text()
+      console.error('Upload response error:', error)
       throw new Error('Failed to upload to Google Drive')
     }
 
     const uploadResult = await uploadResponse.json()
+    console.log('Successfully uploaded file:', uploadResult)
 
     return new Response(
       JSON.stringify({

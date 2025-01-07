@@ -1,12 +1,12 @@
 import { useState } from "react";
 import { ProductData } from "../FileUpload";
 import { ProductCard } from "../ProductCard";
-import { toast } from "sonner";
-import { supabase } from "@/lib/supabase/client";
 import { ProductSidebar } from "../ProductSidebar";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
-import { Eraser } from "lucide-react";
+import { Eraser, CloudUpload } from "lucide-react";
+import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 interface ProductGridProps {
   products: ProductData[];
@@ -19,7 +19,9 @@ export const ProductGrid = ({ products, onImageProcessed }: ProductGridProps) =>
   const [opacity, setOpacity] = useState([100]);
   const [selectedProducts, setSelectedProducts] = useState<number[]>([]);
   const [filters, setFilters] = useState<Record<string, string>>({});
-  const [isBulkProcessing, setIsBulkProcessing] = useState(false);
+  const [isBulkUploading, setIsBulkUploading] = useState(false);
+  
+  console.log("Rendering ProductGrid with products:", products);
 
   const handleRemoveBackground = async (index: number) => {
     setProcessingIndex(index);
@@ -54,116 +56,46 @@ export const ProductGrid = ({ products, onImageProcessed }: ProductGridProps) =>
     }
   };
 
-  const handleBulkRemoveBackground = async () => {
-    if (selectedProducts.length === 0) {
-      toast.error("Please select products first");
+  const handleBulkUploadToGoogleDrive = async () => {
+    const processedProducts = products.filter((product, index) => 
+      selectedProducts.includes(index) && product.processedImageUrl
+    );
+
+    if (processedProducts.length === 0) {
+      toast.error("Please select products with processed images first");
       return;
     }
 
-    setIsBulkProcessing(true);
+    setIsBulkUploading(true);
     let successCount = 0;
     let errorCount = 0;
 
-    for (const index of selectedProducts) {
-      try {
-        setProcessingIndex(index);
-        const product = products[index];
-        
-        const { data, error } = await supabase.functions.invoke('remove-background', {
-          body: { imageUrl: product["image link"] }
-        });
-
-        if (error) throw error;
-        if (!data?.processedUrl) throw new Error("No processed image URL returned");
-
-        onImageProcessed(index, data.processedUrl);
-        successCount++;
-      } catch (error) {
-        console.error(`Error processing image at index ${index}:`, error);
-        errorCount++;
-      } finally {
-        setProcessingIndex(null);
-      }
-    }
-
-    setIsBulkProcessing(false);
-    if (successCount > 0) {
-      toast.success(`Successfully processed ${successCount} images`);
-    }
-    if (errorCount > 0) {
-      toast.error(`Failed to process ${errorCount} images`);
-    }
-  };
-
-  const handleClearBackground = (index: number) => {
-    onImageProcessed(index, "");
-    toast.success("Background cleared successfully!");
-  };
-
-  const handleBulkClearBackground = () => {
-    if (selectedProducts.length === 0) {
-      toast.error("Please select products first");
-      return;
-    }
-
-    selectedProducts.forEach(index => {
-      onImageProcessed(index, "");
-    });
-    toast.success(`Cleared background from ${selectedProducts.length} products`);
-  };
-
-  const handleDownloadOriginal = (imageUrl: string, title: string) => {
-    const link = document.createElement("a");
-    link.href = imageUrl;
-    link.download = `${title}-processed.png`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
-
-  const handleDownloadWithBackground = async (
-    imageUrl: string,
-    title: string,
-    backgroundColor: string,
-    opacity: number
-  ) => {
     try {
-      const canvas = document.createElement('canvas');
-      const ctx = canvas.getContext('2d');
-      if (!ctx) throw new Error('Could not get canvas context');
+      for (const product of processedProducts) {
+        try {
+          const { error } = await supabase.functions.invoke('google-drive', {
+            body: { 
+              imageUrl: product.processedImageUrl,
+              fileName: `${product.title}_with_background.png`
+            }
+          });
 
-      const img = new Image();
-      img.crossOrigin = "anonymous";
-      
-      await new Promise((resolve, reject) => {
-        img.onload = resolve;
-        img.onerror = reject;
-        img.src = imageUrl;
-      });
-
-      canvas.width = img.width;
-      canvas.height = img.height;
-
-      ctx.fillStyle = backgroundColor + Math.round(opacity * 2.55).toString(16).padStart(2, '0');
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-      ctx.drawImage(img, 0, 0);
-
-      canvas.toBlob((blob) => {
-        if (blob) {
-          const url = URL.createObjectURL(blob);
-          const link = document.createElement('a');
-          link.href = url;
-          link.download = `${title}-with-background.png`;
-          document.body.appendChild(link);
-          link.click();
-          document.body.removeChild(link);
-          URL.revokeObjectURL(url);
+          if (error) throw error;
+          successCount++;
+        } catch (error) {
+          console.error('Error uploading to Google Drive:', error);
+          errorCount++;
         }
-      }, 'image/png');
-    } catch (error) {
-      console.error('Error creating image with background:', error);
-      toast.error('Failed to download image with background');
+      }
+
+      if (successCount > 0) {
+        toast.success(`Successfully uploaded ${successCount} images to Google Drive`);
+      }
+      if (errorCount > 0) {
+        toast.error(`Failed to upload ${errorCount} images`);
+      }
+    } finally {
+      setIsBulkUploading(false);
     }
   };
 
@@ -179,7 +111,7 @@ export const ProductGrid = ({ products, onImageProcessed }: ProductGridProps) =>
 
   const filteredProducts = products.filter((product) => {
     return Object.entries(filters).every(([field, value]) => {
-      if (!value || value === "all") return true;
+      if (!value) return true;
       const productValue = String(product[field as keyof ProductData] || "").toLowerCase();
       return productValue.includes(value.toLowerCase());
     });
@@ -205,17 +137,29 @@ export const ProductGrid = ({ products, onImageProcessed }: ProductGridProps) =>
         <div className="flex-1 p-6">
           <div className="space-y-6">
             <div className="flex justify-between items-center">
-              <button
+              <Button
+                variant="outline"
                 onClick={() => handleSelectAll(selectedProducts.length !== products.length)}
-                className="px-4 py-2 text-sm font-medium text-slate-600 hover:text-slate-900 bg-white/50 hover:bg-white/80 rounded-lg transition-colors"
               >
                 {selectedProducts.length === products.length
                   ? "Deselect All"
                   : "Select All"}
-              </button>
+              </Button>
 
               {selectedProducts.length > 0 && (
                 <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    onClick={handleBulkUploadToGoogleDrive}
+                    disabled={isBulkUploading}
+                    className="group"
+                  >
+                    <CloudUpload className="w-4 h-4 mr-2 text-slate-500 group-hover:text-violet-600" />
+                    {isBulkUploading 
+                      ? `Uploading ${selectedProducts.length} images...` 
+                      : `Upload ${selectedProducts.length} images to Drive`
+                    }
+                  </Button>
                   <Button
                     variant="outline"
                     onClick={handleBulkRemoveBackground}
@@ -224,14 +168,6 @@ export const ProductGrid = ({ products, onImageProcessed }: ProductGridProps) =>
                   >
                     <Eraser className="w-4 h-4 mr-2 text-slate-500 group-hover:text-violet-600" />
                     Remove Background ({selectedProducts.length})
-                  </Button>
-                  <Button
-                    variant="outline"
-                    onClick={handleBulkClearBackground}
-                    className="group"
-                  >
-                    <Eraser className="w-4 h-4 mr-2 text-red-500 group-hover:text-red-600" />
-                    Clear Background ({selectedProducts.length})
                   </Button>
                 </div>
               )}
@@ -250,7 +186,6 @@ export const ProductGrid = ({ products, onImageProcessed }: ProductGridProps) =>
                   selectedColor={selectedColor}
                   opacity={opacity[0]}
                   handleRemoveBackground={handleRemoveBackground}
-                  handleClearBackground={handleClearBackground}
                   handleDownloadOriginal={handleDownloadOriginal}
                   handleDownloadWithBackground={handleDownloadWithBackground}
                 />

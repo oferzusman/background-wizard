@@ -42,20 +42,39 @@ export const ProductCard = ({
   const isProcessing = processingIndex === index;
   const hasProcessedImage = !!product.processedImageUrl;
 
+  // Function to determine the background style
+  const getBackgroundStyle = () => {
+    if (!product.processedImageUrl) return {};
+    
+    // If the selectedColor starts with 'linear-gradient', use it directly
+    if (selectedColor.startsWith('linear-gradient')) {
+      return {
+        background: selectedColor,
+        opacity: opacity / 100
+      };
+    }
+    
+    // Otherwise, use the color with opacity
+    return {
+      backgroundColor: `${selectedColor}${Math.round(opacity * 2.55)
+        .toString(16)
+        .padStart(2, '0')}`
+    };
+  };
+
   return (
     <Card className="overflow-hidden">
       <div className="relative aspect-square">
+        <div 
+          className="absolute inset-0 transition-all duration-300"
+          style={getBackgroundStyle()}
+        />
         <img
           src={product.processedImageUrl || product["image link"]}
           alt={product.title}
-          className="w-full h-full object-contain"
-          style={
-            product.processedImageUrl
-              ? { backgroundColor: selectedColor + Math.round(opacity * 2.55).toString(16).padStart(2, '0') }
-              : undefined
-          }
+          className="w-full h-full object-contain relative z-10"
         />
-        <div className="absolute top-2 left-2">
+        <div className="absolute top-2 left-2 z-20">
           <Checkbox
             checked={isSelected}
             onCheckedChange={(checked) => onSelect(index, checked as boolean)}

@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { parseFileContent } from "@/utils/fileParser";
 import { Link } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 interface UrlInputProps {
   onDataParsed: (data: any[]) => void;
@@ -13,12 +14,34 @@ interface UrlInputProps {
 export const UrlInput = ({ onDataParsed }: UrlInputProps) => {
   const [url, setUrl] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const navigate = useNavigate();
+
+  // Check authentication on component mount
+  useEffect(() => {
+    const checkAuth = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        console.log("No active session found, redirecting to login");
+        navigate("/login");
+      }
+    };
+    
+    checkAuth();
+  }, [navigate]);
 
   const handleUrlSubmit = async () => {
     setIsLoading(true);
     console.log("Processing URL:", url);
     
     try {
+      // Check if user is authenticated
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        console.log("No active session found during URL submission");
+        navigate("/login");
+        return;
+      }
+
       const response = await fetch(url);
       if (!response.ok) {
         throw new Error(`Failed to fetch URL: ${response.statusText}`);
@@ -27,14 +50,13 @@ export const UrlInput = ({ onDataParsed }: UrlInputProps) => {
       const content = await response.text();
       console.log("Received content length:", content.length);
       
-      // For XML feeds, don't rely on extension
       const fileType = url.toLowerCase().includes('xml') || content.trim().startsWith('<?xml') ? 'xml' : 
                       url.toLowerCase().endsWith('csv') ? 'csv' : 
                       url.toLowerCase().endsWith('tsv') ? 'tsv' : 'xml';
       
       console.log("Detected file type:", fileType);
 
-      // Store in file history
+      // Insert with user_id from the session
       const { error: historyError } = await supabase
         .from("file_history")
         .insert({
@@ -42,6 +64,7 @@ export const UrlInput = ({ onDataParsed }: UrlInputProps) => {
           file_type: fileType,
           is_url: true,
           status: "completed",
+          user_id: session.user.id // Explicitly set the user_id
         });
 
       if (historyError) {

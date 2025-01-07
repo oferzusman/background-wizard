@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -7,6 +7,7 @@ import { FileHistory } from "./FileHistory";
 import { parseFileContent } from "@/utils/fileParser";
 import { motion } from "framer-motion";
 import { Upload, FileType } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 interface FileUploadProps {
   onDataParsed: (data: ProductData[]) => void;
@@ -24,6 +25,20 @@ export interface ProductData {
 export const FileUpload = ({ onDataParsed }: FileUploadProps) => {
   const [isLoading, setIsLoading] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
+  const navigate = useNavigate();
+
+  // Check authentication on component mount
+  useEffect(() => {
+    const checkAuth = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        console.log("No active session found, redirecting to login");
+        navigate("/login");
+      }
+    };
+    
+    checkAuth();
+  }, [navigate]);
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -33,6 +48,14 @@ export const FileUpload = ({ onDataParsed }: FileUploadProps) => {
     console.log("Starting file upload:", file.name);
     
     try {
+      // Check if user is authenticated
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        console.log("No active session found during file upload");
+        navigate("/login");
+        return;
+      }
+
       const fileType = file.name.split(".").pop()?.toLowerCase();
       if (!["csv", "tsv", "xml"].includes(fileType || "")) {
         throw new Error("Unsupported file type. Please use CSV, TSV, or XML files.");
@@ -41,16 +64,19 @@ export const FileUpload = ({ onDataParsed }: FileUploadProps) => {
       const text = await file.text();
       const parsedData = await parseFileContent(text, fileType || "");
 
+      // Insert with user_id from the session
       const { error: historyError } = await supabase
         .from("file_history")
         .insert({
           file_type: fileType,
           original_filename: file.name,
           status: "completed",
+          user_id: session.user.id // Explicitly set the user_id
         });
 
       if (historyError) {
         console.error("Error saving to history:", historyError);
+        throw historyError;
       }
 
       onDataParsed(parsedData);

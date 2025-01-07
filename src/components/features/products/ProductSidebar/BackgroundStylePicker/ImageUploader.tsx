@@ -22,6 +22,17 @@ export const ImageUploader = ({ onImageUpload }: ImageUploaderProps) => {
     console.log('Starting image upload process');
     
     try {
+      // First check if user is authenticated
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      
+      if (sessionError || !session) {
+        console.error('Authentication error:', sessionError);
+        toast.error('Please log in to upload images');
+        return;
+      }
+
+      console.log('User is authenticated, proceeding with upload');
+      
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
         console.log('Processing file:', file.name);
@@ -32,7 +43,7 @@ export const ImageUploader = ({ onImageUpload }: ImageUploaderProps) => {
         
         const { data: uploadData, error: uploadError } = await supabase.storage
           .from('merchant_saas')
-          .upload(fileName, file);
+          .upload(`${session.user.id}/${fileName}`, file);
 
         if (uploadError) {
           console.error('Storage upload error:', uploadError);
@@ -44,7 +55,7 @@ export const ImageUploader = ({ onImageUpload }: ImageUploaderProps) => {
         // Get public URL
         const { data: { publicUrl } } = supabase.storage
           .from('merchant_saas')
-          .getPublicUrl(fileName);
+          .getPublicUrl(`${session.user.id}/${fileName}`);
 
         console.log('Generated public URL:', publicUrl);
 
@@ -52,7 +63,8 @@ export const ImageUploader = ({ onImageUpload }: ImageUploaderProps) => {
         const { error: dbError } = await supabase
           .from('background_images')
           .insert({
-            url: publicUrl
+            url: publicUrl,
+            user_id: session.user.id
           });
 
         if (dbError) {
@@ -68,7 +80,7 @@ export const ImageUploader = ({ onImageUpload }: ImageUploaderProps) => {
       }
     } catch (error) {
       console.error('Error in image upload process:', error);
-      toast.error('Failed to upload image');
+      toast.error('Failed to upload image. Please try again.');
     } finally {
       setIsUploading(false);
       if (fileInputRef.current) {

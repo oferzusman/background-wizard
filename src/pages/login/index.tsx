@@ -1,105 +1,60 @@
-import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { Auth } from "@supabase/auth-ui-react";
-import { supabase } from "@/lib/supabase/client";
 import { ThemeSupa } from "@supabase/auth-ui-shared";
-import { toast } from "sonner";
-import { AuthError, AuthApiError } from "@supabase/supabase-js";
+import { supabase } from "@/lib/supabase/client";
+import { motion } from "framer-motion";
 
 const Login = () => {
-  const navigate = useNavigate();
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    // Check if user is already logged in
-    const checkUser = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session) {
-        console.log("User already logged in, redirecting to dashboard");
-        navigate("/");
-      }
-    };
-
-    // Set up auth state change listener
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      console.log("Auth state changed:", event, session?.user?.id);
-      
-      if (event === 'SIGNED_IN') {
-        console.log("User signed in successfully");
-        navigate("/");
-      } else if (event === 'SIGNED_OUT') {
-        console.log("User signed out");
-        setError(null);
-      } else if (event === 'USER_UPDATED') {
-        console.log("User updated");
-      }
-    });
-
-    checkUser();
-
-    // Cleanup subscription
-    return () => {
-      subscription.unsubscribe();
-    };
-  }, [navigate]);
-
-  const getErrorMessage = (error: AuthError) => {
-    if (error instanceof AuthApiError) {
-      switch (error.status) {
-        case 400:
-          if (error.message.includes("Invalid login credentials")) {
-            return "Invalid email or password. Please check your credentials and try again.";
-          }
-          return "Invalid request. Please check your input and try again.";
-        case 422:
-          return "Invalid email format. Please enter a valid email address.";
-        default:
-          return error.message;
-      }
-    }
-    return "An unexpected error occurred. Please try again.";
-  };
-
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-50 p-4">
-      <div className="w-full max-w-md space-y-8 bg-white p-8 rounded-xl shadow-sm">
-        <div className="text-center">
-          <h2 className="text-2xl font-bold tracking-tight text-slate-900">
-            Welcome back
-          </h2>
-          <p className="mt-2 text-sm text-slate-600">
-            Please sign in to your account
-          </p>
-        </div>
-        
-        <Auth
-          supabaseClient={supabase}
-          appearance={{ 
-            theme: ThemeSupa,
-            variables: {
-              default: {
-                colors: {
-                  brand: '#8b5cf6',
-                  brandAccent: '#7c3aed'
-                }
-              }
-            }
-          }}
-          providers={[]}
-          onError={(error) => {
-            console.error("Auth error:", error);
-            const message = getErrorMessage(error);
-            setError(message);
-            toast.error(message);
-          }}
-        />
-
-        {error && (
-          <div className="mt-4 p-3 text-sm text-red-600 bg-red-50 rounded-md">
-            {error}
+    <div className="min-h-screen flex items-center justify-center p-4">
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+        className="w-full max-w-md"
+      >
+        <div className="glass-effect rounded-xl p-8 shadow-xl">
+          <div className="mb-8 text-center">
+            <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-violet-600 to-indigo-600 mb-2">
+              Welcome Back
+            </h1>
+            <p className="text-slate-600">
+              Sign in to continue to your account
+            </p>
           </div>
-        )}
-      </div>
+          
+          <Auth
+            supabaseClient={supabase}
+            appearance={{
+              theme: ThemeSupa,
+              variables: {
+                default: {
+                  colors: {
+                    brand: '#8b5cf6',
+                    brandAccent: '#7c3aed',
+                    inputBackground: 'white',
+                    inputText: '#1f2937',
+                    inputBorder: '#e5e7eb',
+                    inputBorderHover: '#8b5cf6',
+                    inputBorderFocus: '#8b5cf6',
+                  },
+                  space: {
+                    inputPadding: '0.75rem',
+                    buttonPadding: '0.75rem',
+                  },
+                },
+              },
+              className: {
+                container: 'space-y-4',
+                button: 'bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 transition-all duration-200 text-white font-medium py-2.5 rounded-lg w-full',
+                input: 'w-full px-3 py-2.5 rounded-lg border focus:ring-2 focus:ring-violet-500 focus:border-violet-500 transition-all duration-200',
+                label: 'text-sm font-medium text-slate-700 mb-1',
+              },
+            }}
+            theme="default"
+            providers={["google"]}
+          />
+        </div>
+      </motion.div>
     </div>
   );
 };

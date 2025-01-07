@@ -9,6 +9,48 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      background_images: {
+        Row: {
+          created_at: string | null
+          id: string
+          url: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          url: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          url?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      color_presets: {
+        Row: {
+          color: string
+          created_at: string | null
+          id: string
+          user_id: string | null
+        }
+        Insert: {
+          color: string
+          created_at?: string | null
+          id?: string
+          user_id?: string | null
+        }
+        Update: {
+          color?: string
+          created_at?: string | null
+          id?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       file_history: {
         Row: {
           file_type: string
@@ -65,6 +107,27 @@ export type Database = {
           file_url?: string | null
           id?: string
           uploaded_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      gradient_presets: {
+        Row: {
+          created_at: string | null
+          gradient: string
+          id: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          gradient: string
+          id?: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          gradient?: string
+          id?: string
           user_id?: string | null
         }
         Relationships: []

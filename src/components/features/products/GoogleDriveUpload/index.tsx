@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase/client";
-import { Drive } from "lucide-react";
+import { CloudUpload } from "lucide-react";
 
 interface GoogleDriveUploadProps {
   imageUrl: string;
@@ -39,7 +39,7 @@ export const GoogleDriveUpload = ({ imageUrl, fileName }: GoogleDriveUploadProps
       disabled={isUploading}
       className="w-full mt-2"
     >
-      <Drive className="w-4 h-4 mr-2" />
+      <CloudUpload className="w-4 h-4 mr-2" />
       {isUploading ? 'Uploading...' : 'Save to Google Drive'}
     </Button>
   );

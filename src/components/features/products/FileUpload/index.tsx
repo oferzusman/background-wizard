@@ -1,156 +1,150 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
+import { useDropzone } from "react-dropzone";
+import { Upload, FileText, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import Papa from "papaparse";
 import { toast } from "sonner";
-import { supabase } from "@/lib/supabase/client";
-import { UrlInput } from "../UrlInput";
-import { FileHistory } from "../FileHistory";
-import { parseFileContent } from "@/lib/utils/fileParser";
-import { motion } from "framer-motion";
-import { Upload, FileType } from "lucide-react";
+
+export interface ProductData {
+  id: string;
+  title: string;
+  image_url: string;
+  product_type?: string;
+  processedImageUrl?: string;
+}
 
 interface FileUploadProps {
   onDataParsed: (data: ProductData[]) => void;
 }
 
-export interface ProductData {
-  title: string;
-  "image link": string;
-  processedImageUrl?: string;
-  product_type?: string;
-  id?: string;
-  link?: string;
-}
-
 export const FileUpload = ({ onDataParsed }: FileUploadProps) => {
-  const [isLoading, setIsLoading] = useState(false);
-  const [isDragging, setIsDragging] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [isProcessing, setIsProcessing] = useState(false);
 
-  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
+  const onDrop = useCallback(async (acceptedFiles: File[]) => {
+    setError(null);
+    setIsProcessing(true);
 
-    setIsLoading(true);
-    console.log("Starting file upload:", file.name);
-    
     try {
-      const fileType = file.name.split(".").pop()?.toLowerCase();
-      if (!["csv", "tsv", "xml"].includes(fileType || "")) {
-        throw new Error("Unsupported file type. Please use CSV, TSV, or XML files.");
+      const file = acceptedFiles[0];
+      
+      if (!file) {
+        throw new Error("No file selected");
       }
 
-      const text = await file.text();
-      const parsedData = await parseFileContent(text, fileType || "");
-
-      const { error: historyError } = await supabase
-        .from("file_history")
-        .insert({
-          file_type: fileType,
-          original_filename: file.name,
-          status: "completed",
-        });
-
-      if (historyError) {
-        console.error("Error saving to history:", historyError);
+      if (file.type !== "text/csv") {
+        throw new Error("Please upload a CSV file");
       }
 
-      onDataParsed(parsedData);
-      toast.success(`Successfully loaded ${parsedData.length} products!`);
-    } catch (error) {
-      console.error("Error processing file:", error);
-      toast.error(error instanceof Error ? error.message : "Error processing file");
+      Papa.parse(file, {
+        complete: (results) => {
+          if (results.errors.length > 0) {
+            throw new Error("Error parsing CSV file");
+          }
+
+          const headers = results.data[0] as string[];
+          const requiredHeaders = ["id", "title", "image_url"];
+          
+          const missingHeaders = requiredHeaders.filter(
+            (header) => !headers.includes(header)
+          );
+
+          if (missingHeaders.length > 0) {
+            throw new Error(
+              `Missing required columns: ${missingHeaders.join(", ")}`
+            );
+          }
+
+          const products = results.data.slice(1).map((row: any) => ({
+            id: row[headers.indexOf("id")],
+            title: row[headers.indexOf("title")],
+            image_url: row[headers.indexOf("image_url")],
+            product_type: row[headers.indexOf("product_type")] || undefined,
+          }));
+
+          onDataParsed(products);
+          toast.success("CSV file processed successfully");
+        },
+        error: (error: Error) => {
+          throw error;
+        },
+      });
+    } catch (err) {
+      console.error("File processing error:", err);
+      setError(err instanceof Error ? err.message : "Error processing file");
+      toast.error("Failed to process CSV file");
     } finally {
-      setIsLoading(false);
+      setIsProcessing(false);
     }
-  };
+  }, [onDataParsed]);
 
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(true);
-  };
-
-  const handleDragLeave = (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(false);
-  };
-
-  const handleDrop = async (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(false);
-    
-    const file = e.dataTransfer.files[0];
-    if (!file) return;
-    
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.files = e.dataTransfer.files;
-    handleFileUpload({ target: input } as any);
-  };
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({
+    onDrop,
+    accept: {
+      "text/csv": [".csv"],
+    },
+    multiple: false,
+  });
 
   return (
-    <motion.div 
-      className="space-y-8"
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5 }}
-    >
+    <div className="space-y-4">
       <div
-        className={`flex flex-col items-center gap-6 p-12 border-2 border-dashed rounded-xl transition-all duration-200 ${
-          isDragging
-            ? "border-violet-400 bg-violet-50"
-            : "border-slate-200 bg-white hover:border-violet-200 hover:bg-slate-50"
-        }`}
-        onDragOver={handleDragOver}
-        onDragLeave={handleDragLeave}
-        onDrop={handleDrop}
+        {...getRootProps()}
+        className={`
+          border-2 border-dashed rounded-lg p-8
+          flex flex-col items-center justify-center
+          transition-colors duration-200 cursor-pointer
+          ${isDragActive ? "border-violet-500 bg-violet-50" : "border-gray-300"}
+          hover:border-violet-500 hover:bg-violet-50
+        `}
       >
-        <div className="w-16 h-16 rounded-full bg-violet-100 flex items-center justify-center">
-          <Upload className="w-8 h-8 text-violet-600" />
-        </div>
-        <div className="text-center">
-          <p className="text-lg font-medium text-slate-900 mb-2">
-            Upload your product data
-          </p>
-          <p className="text-sm text-slate-600">
-            Drag and drop your CSV, TSV, or XML file, or click to browse
-          </p>
-        </div>
-        <input
-          type="file"
-          accept=".csv,.tsv,.xml"
-          onChange={handleFileUpload}
-          className="hidden"
-          id="file-upload"
+        <input {...getInputProps()} />
+        <Upload
+          className={`w-12 h-12 mb-4 ${
+            isDragActive ? "text-violet-500" : "text-gray-400"
+          }`}
         />
-        <label htmlFor="file-upload">
-          <Button disabled={isLoading} variant="outline" size="lg" asChild>
-            <span className="flex items-center gap-2">
-              <FileType className="w-4 h-4" />
-              {isLoading ? "Processing..." : "Choose File"}
-            </span>
-          </Button>
-        </label>
+        <div className="text-center">
+          <p className="text-sm text-gray-600">
+            {isDragActive ? (
+              "Drop the CSV file here"
+            ) : (
+              <>
+                Drag and drop your CSV file here, or{" "}
+                <span className="text-violet-600 font-medium">browse</span>
+              </>
+            )}
+          </p>
+          <p className="text-xs text-gray-500 mt-2">
+            Only CSV files are supported
+          </p>
+        </div>
       </div>
-      
-      <div className="space-y-6">
-        <div className="relative">
-          <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-slate-200" />
-          </div>
-          <div className="relative flex justify-center text-sm">
-            <span className="px-2 bg-slate-50 text-slate-500">Or import from URL</span>
+
+      {error && (
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
+
+      <div className="bg-gray-50 rounded-lg p-4">
+        <div className="flex items-start gap-3">
+          <FileText className="w-5 h-5 text-gray-400 mt-0.5" />
+          <div>
+            <h3 className="text-sm font-medium text-gray-900">
+              CSV File Requirements
+            </h3>
+            <ul className="mt-2 text-xs text-gray-600 list-disc pl-4 space-y-1">
+              <li>Must include columns: id, title, image_url</li>
+              <li>Optional columns: product_type</li>
+              <li>Image URLs must be publicly accessible</li>
+              <li>Maximum file size: 10MB</li>
+            </ul>
           </div>
         </div>
-        
-        <UrlInput onDataParsed={onDataParsed} />
       </div>
-      
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 0.3 }}
-      >
-        <FileHistory onDataParsed={onDataParsed} />
-      </motion.div>
-    </motion.div>
+    </div>
   );
 };

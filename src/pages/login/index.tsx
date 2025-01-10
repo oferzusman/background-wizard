@@ -4,7 +4,7 @@ import { supabase } from "@/lib/supabase/client";
 import { motion } from "framer-motion";
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { toast } from "sonner";
+import { Link } from "react-router-dom";
 
 const Login = () => {
   const navigate = useNavigate();
@@ -86,6 +86,26 @@ const Login = () => {
             theme="default"
             providers={["google"]}
           />
+
+          <div className="mt-6 text-center text-sm text-slate-500 space-x-4">
+            <a 
+              href="/CHANGELOG.md" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="hover:text-violet-600 transition-colors"
+            >
+              Changelog
+            </a>
+            <span>•</span>
+            <a 
+              href="/ROADMAP.md" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="hover:text-violet-600 transition-colors"
+            >
+              Roadmap
+            </a>
+          </div>
         </div>
       </motion.div>
     </div>

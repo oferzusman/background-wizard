@@ -4,17 +4,28 @@ import { supabase } from "@/lib/supabase/client";
 import { motion } from "framer-motion";
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Link } from "react-router-dom";
+import { toast } from "sonner";
 
 const Login = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
+    console.log("Login component mounted");
+    
     // Check if user is already logged in
     const checkUser = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session) {
-        navigate('/dashboard');
+      try {
+        const { data: { session }, error } = await supabase.auth.getSession();
+        if (error) {
+          console.error("Session check error:", error);
+          return;
+        }
+        if (session) {
+          console.log("User already logged in, redirecting to dashboard");
+          navigate('/dashboard');
+        }
+      } catch (error) {
+        console.error("Error checking session:", error);
       }
     };
 
@@ -23,16 +34,21 @@ const Login = () => {
     // Listen for auth state changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       console.log("Auth state changed:", event, session);
+      
       if (event === 'SIGNED_IN') {
         console.log("User signed in, redirecting to dashboard");
+        toast.success("Successfully signed in!");
         navigate('/dashboard');
       } else if (event === 'SIGNED_OUT') {
         console.log("User signed out");
         navigate('/login');
+      } else if (event === 'USER_UPDATED') {
+        console.log("User updated");
       }
     });
 
     return () => {
+      console.log("Cleaning up auth subscription");
       subscription.unsubscribe();
     };
   }, [navigate]);

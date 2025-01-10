@@ -14,7 +14,7 @@ interface FileUploadProps {
 
 export interface ProductData {
   title: string;
-  "image link": string;
+  image_url: string;
   processedImageUrl?: string;
   product_type?: string;
   id?: string;

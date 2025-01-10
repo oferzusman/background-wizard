@@ -22,30 +22,30 @@ const Login = () => {
           throw sessionError;
         }
         if (session && mounted) {
-          console.log("User has valid session, redirecting to dashboard");
+          console.log("Valid session found, redirecting to dashboard");
           navigate('/');
         }
       } catch (err) {
-        console.error("Session check error:", err);
+        console.error("Auth error during session check:", err);
         if (err instanceof AuthError) {
           setError(getErrorMessage(err));
         }
       }
     };
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (!mounted) return;
       
-      console.log("Auth state changed:", event, session);
+      console.log("Auth state changed - Event:", event);
       
       if (event === 'SIGNED_IN' && session) {
-        console.log("User signed in successfully, redirecting to dashboard");
+        console.log("Sign in successful, redirecting to dashboard");
         navigate('/');
       } else if (event === 'SIGNED_OUT') {
-        console.log("User signed out, clearing error state");
+        console.log("Sign out detected, clearing error state");
         setError(null);
       } else if (event === 'USER_UPDATED') {
-        console.log("User updated, checking session");
+        console.log("User update detected, rechecking session");
         checkUser();
       }
     });
@@ -67,16 +67,19 @@ const Login = () => {
           if (error.message.includes('Email not confirmed')) {
             return 'Please verify your email address before signing in.';
           }
-          return 'Invalid email or password. Please check your credentials and try again.';
+          if (error.message.includes('Invalid login credentials')) {
+            return 'The email or password you entered is incorrect. Please try again.';
+          }
+          return 'Invalid login attempt. Please check your credentials and try again.';
         case 422:
-          return 'Invalid email format. Please enter a valid email address.';
+          return 'Please enter a valid email address.';
         case 429:
-          return 'Too many login attempts. Please try again later.';
+          return 'Too many login attempts. Please wait a moment before trying again.';
         default:
-          return error.message;
+          return `Authentication error: ${error.message}`;
       }
     }
-    return error.message;
+    return `Unexpected error: ${error.message}`;
   };
 
   return (

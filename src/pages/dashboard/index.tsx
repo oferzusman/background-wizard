@@ -22,13 +22,13 @@ const steps = [
   },
 ];
 
-const Dashboard = () => {
+const Index = () => {
   const [products, setProducts] = useState<ProductData[]>([]);
   const [currentStep, setCurrentStep] = useState(1);
   const [completedSteps, setCompletedSteps] = useState<number[]>([]);
 
   const handleDataParsed = (data: ProductData[]) => {
-    console.log("Data parsed in Dashboard:", data);
+    console.log("Data parsed in Index:", data);
     setProducts(data);
     setCompletedSteps((prev) => [...new Set([...prev, 1])]);
     setCurrentStep(2);
@@ -88,4 +88,4 @@ const Dashboard = () => {
   );
 };
 
-export default Dashboard;
+export default Index;

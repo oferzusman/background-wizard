@@ -1,7 +1,6 @@
 import { useState, useCallback } from "react";
 import { useDropzone } from "react-dropzone";
 import { Upload, FileText, AlertCircle } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import Papa from "papaparse";
 import { toast } from "sonner";
@@ -60,7 +59,7 @@ export const FileUpload = ({ onDataParsed }: FileUploadProps) => {
             id: row[headers.indexOf("id")],
             title: row[headers.indexOf("title")],
             image_url: row[headers.indexOf("image_url")],
-            product_type: row[headers.indexOf("product_type")] || undefined,
+            product_type: row[headers.indexOf("product_type")] || undefined
           }));
 
           onDataParsed(products);
@@ -72,8 +71,7 @@ export const FileUpload = ({ onDataParsed }: FileUploadProps) => {
       });
     } catch (err) {
       console.error("File processing error:", err);
-      setError(err instanceof Error ? err.message : "Error processing file");
-      toast.error("Failed to process CSV file");
+      setError(err instanceof Error ? err.message : "Errord to process CSV file");
     } finally {
       setIsProcessing(false);
     }

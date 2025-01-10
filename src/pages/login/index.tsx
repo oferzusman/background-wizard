@@ -5,7 +5,7 @@ import { motion } from "framer-motion";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { AuthError } from "@supabase/supabase-js";
+import { AuthError, AuthApiError } from "@supabase/supabase-js";
 
 const Login = () => {
   const navigate = useNavigate();
@@ -22,7 +22,7 @@ const Login = () => {
           throw sessionError;
         }
         if (session && mounted) {
-          console.log("User already has session, redirecting to dashboard");
+          console.log("User has valid session, redirecting to dashboard");
           navigate('/');
         }
       } catch (err) {
@@ -39,11 +39,14 @@ const Login = () => {
       console.log("Auth state changed:", event, session);
       
       if (event === 'SIGNED_IN' && session) {
-        console.log("User signed in, redirecting to dashboard");
+        console.log("User signed in successfully, redirecting to dashboard");
         navigate('/');
       } else if (event === 'SIGNED_OUT') {
         console.log("User signed out, clearing error state");
         setError(null);
+      } else if (event === 'USER_UPDATED') {
+        console.log("User updated, checking session");
+        checkUser();
       }
     });
 
@@ -56,15 +59,24 @@ const Login = () => {
   }, [navigate]);
 
   const getErrorMessage = (error: AuthError) => {
-    console.log("Processing error:", error);
-    switch (error.message) {
-      case 'Invalid login credentials':
-        return 'Invalid email or password. Please check your credentials and try again.';
-      case 'Email not confirmed':
-        return 'Please verify your email address before signing in.';
-      default:
-        return error.message;
+    console.log("Processing auth error:", error);
+    
+    if (error instanceof AuthApiError) {
+      switch (error.status) {
+        case 400:
+          if (error.message.includes('Email not confirmed')) {
+            return 'Please verify your email address before signing in.';
+          }
+          return 'Invalid email or password. Please check your credentials and try again.';
+        case 422:
+          return 'Invalid email format. Please enter a valid email address.';
+        case 429:
+          return 'Too many login attempts. Please try again later.';
+        default:
+          return error.message;
+      }
     }
+    return error.message;
   };
 
   return (

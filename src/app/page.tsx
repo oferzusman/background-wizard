@@ -1,9 +1,9 @@
 import { Routes, Route } from "react-router-dom";
-import Index from "@/pages/dashboard";
+import Dashboard from "@/pages/dashboard";
 
 const AppPage = () => (
   <Routes>
-    <Route path="/" element={<Index />} />
+    <Route path="/" element={<Dashboard />} />
   </Routes>
 );
 

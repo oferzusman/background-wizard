@@ -9,6 +9,39 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      audit_logs: {
+        Row: {
+          action: string
+          changes: Json | null
+          created_at: string
+          entity_id: string | null
+          entity_type: string | null
+          id: string
+          ip_address: string | null
+          user_id: string | null
+        }
+        Insert: {
+          action: string
+          changes?: Json | null
+          created_at?: string
+          entity_id?: string | null
+          entity_type?: string | null
+          id?: string
+          ip_address?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          action?: string
+          changes?: Json | null
+          created_at?: string
+          entity_id?: string | null
+          entity_type?: string | null
+          id?: string
+          ip_address?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       background_images: {
         Row: {
           created_at: string | null
@@ -192,6 +225,48 @@ export type Database = {
         }
         Relationships: []
       }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          company_name: string | null
+          created_at: string
+          email_notifications: boolean | null
+          first_name: string | null
+          id: string
+          language: Database["public"]["Enums"]["language"] | null
+          last_name: string | null
+          push_notifications: boolean | null
+          timezone: string | null
+          updated_at: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          company_name?: string | null
+          created_at?: string
+          email_notifications?: boolean | null
+          first_name?: string | null
+          id: string
+          language?: Database["public"]["Enums"]["language"] | null
+          last_name?: string | null
+          push_notifications?: boolean | null
+          timezone?: string | null
+          updated_at?: string
+        }
+        Update: {
+          avatar_url?: string | null
+          company_name?: string | null
+          created_at?: string
+          email_notifications?: boolean | null
+          first_name?: string | null
+          id?: string
+          language?: Database["public"]["Enums"]["language"] | null
+          last_name?: string | null
+          push_notifications?: boolean | null
+          timezone?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string | null
@@ -213,6 +288,66 @@ export type Database = {
         }
         Relationships: []
       }
+      user_sessions: {
+        Row: {
+          created_at: string
+          device_id: string | null
+          id: string
+          ip_address: string | null
+          last_active: string
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          device_id?: string | null
+          id?: string
+          ip_address?: string | null
+          last_active?: string
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          device_id?: string | null
+          id?: string
+          ip_address?: string | null
+          last_active?: string
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      user_settings: {
+        Row: {
+          created_at: string
+          id: string
+          storage_quota: number | null
+          theme: string | null
+          two_factor_enabled: boolean | null
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          storage_quota?: number | null
+          theme?: string | null
+          two_factor_enabled?: boolean | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          storage_quota?: number | null
+          theme?: string | null
+          two_factor_enabled?: boolean | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -221,7 +356,10 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
+      account_status: "active" | "pending" | "suspended" | "deactivated"
       app_role: "super_admin" | "admin" | "user"
+      language: "en" | "es" | "fr" | "de" | "it"
+      user_role: "super_admin" | "admin" | "user" | "guest"
     }
     CompositeTypes: {
       [_ in never]: never

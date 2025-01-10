@@ -4,7 +4,6 @@ import { supabase } from "@/lib/supabase/client";
 import { motion } from "framer-motion";
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Link } from "react-router-dom";
 
 const Login = () => {
   const navigate = useNavigate();
@@ -14,7 +13,7 @@ const Login = () => {
     const checkUser = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (session) {
-        navigate('/dashboard');
+        navigate('/');
       }
     };
 
@@ -25,10 +24,7 @@ const Login = () => {
       console.log("Auth state changed:", event, session);
       if (event === 'SIGNED_IN') {
         console.log("User signed in, redirecting to dashboard");
-        navigate('/dashboard');
-      } else if (event === 'SIGNED_OUT') {
-        console.log("User signed out");
-        navigate('/login');
+        navigate('/');
       }
     });
 

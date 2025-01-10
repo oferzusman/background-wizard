@@ -15,15 +15,33 @@ export const parseFileContent = async (
         delimiter,
         header: true,
         complete: (results) => {
+          console.log("CSV/TSV Headers found:", results.meta.fields);
+          
+          // Check for either image_url or image link column
+          const hasImageUrl = results.meta.fields?.includes('image_url');
+          const hasImageLink = results.meta.fields?.includes('image link');
+          
+          if (!hasImageUrl && !hasImageLink) {
+            console.error("Missing image URL column");
+            reject(new Error("CSV/TSV must contain either 'image_url' or 'image link' column"));
+            return;
+          }
+
           const parsedData = results.data
-            .filter((item: any) => item.title && item.image_url)
+            .filter((item: any) => {
+              const title = item.title;
+              const imageUrl = item.image_url || item["image link"];
+              return title && imageUrl;
+            })
             .map((item: any) => ({
-              id: item.id || "",
+              id: item.id || crypto.randomUUID(),
               title: item.title,
               image_url: item.image_url || item["image link"],
               product_type: item.product_type || item["product type"],
+              link: item.link || "",
             }));
-          console.log("Parsed CSV/TSV data:", parsedData);
+            
+          console.log("Parsed CSV/TSV data:", parsedData.length, "items");
           resolve(parsedData);
         },
         error: (error) => {
@@ -60,12 +78,15 @@ export const parseFileContent = async (
       
       console.log("Found products array:", products.length, "items");
       
-      const parsedData = products.map((item: any) => ({
-        id: item.id || "",
-        title: item.title || "",
-        image_url: item.image_url || item["image link"] || "",
-        product_type: item.product_type || "",
-      })).filter(item => item.title && item.image_url);
+      const parsedData = products
+        .map((item: any) => ({
+          id: item.id || crypto.randomUUID(),
+          title: item.title || "",
+          image_url: item.image_url || item["image link"] || "",
+          product_type: item.product_type || item["product type"] || "",
+          link: item.link || "",
+        }))
+        .filter(item => item.title && item.image_url);
       
       console.log("Successfully parsed", parsedData.length, "products from XML");
       return parsedData;

@@ -19,8 +19,8 @@ export const parseFileContent = async (
             } else {
               const data: ProductData[] = results.data.map((item: any) => ({
                 title: item.title,
-                image_url: item["image link"] || item.image_url,
-                product_type: item.product_type,
+                "image link": item["image link"],
+                product_type: item["product_type"],
                 id: item.id,
                 link: item.link,
               }));
@@ -35,8 +35,8 @@ export const parseFileContent = async (
       const jsonObj = parser.parse(content);
       const products: ProductData[] = jsonObj.products.product.map((item: any) => ({
         title: item.title,
-        image_url: item["image link"] || item.image_url,
-        product_type: item.product_type,
+        "image link": item["image link"],
+        product_type: item["product_type"],
         id: item.id,
         link: item.link,
       }));

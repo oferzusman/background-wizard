@@ -2,85 +2,40 @@ import { Auth } from "@supabase/auth-ui-react";
 import { ThemeSupa } from "@supabase/auth-ui-shared";
 import { supabase } from "@/lib/supabase/client";
 import { motion } from "framer-motion";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { AuthError, AuthApiError } from "@supabase/supabase-js";
+import { Link } from "react-router-dom";
 
 const Login = () => {
   const navigate = useNavigate();
-  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    let mounted = true;
-
+    // Check if user is already logged in
     const checkUser = async () => {
-      try {
-        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-        if (sessionError) {
-          console.error("Session check error:", sessionError);
-          throw sessionError;
-        }
-        if (session && mounted) {
-          console.log("Valid session found, redirecting to dashboard");
-          navigate('/');
-        }
-      } catch (err) {
-        console.error("Auth error during session check:", err);
-        if (err instanceof AuthError) {
-          setError(getErrorMessage(err));
-        }
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        navigate('/dashboard');
       }
     };
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (!mounted) return;
-      
-      console.log("Auth state changed - Event:", event);
-      
-      if (event === 'SIGNED_IN' && session) {
-        console.log("Sign in successful, redirecting to dashboard");
-        navigate('/');
-      } else if (event === 'SIGNED_OUT') {
-        console.log("Sign out detected, clearing error state");
-        setError(null);
-      } else if (event === 'USER_UPDATED') {
-        console.log("User update detected, rechecking session");
-        checkUser();
-      }
-    });
 
     checkUser();
 
+    // Listen for auth state changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log("Auth state changed:", event, session);
+      if (event === 'SIGNED_IN') {
+        console.log("User signed in, redirecting to dashboard");
+        navigate('/dashboard');
+      } else if (event === 'SIGNED_OUT') {
+        console.log("User signed out");
+        navigate('/login');
+      }
+    });
+
     return () => {
-      mounted = false;
       subscription.unsubscribe();
     };
   }, [navigate]);
-
-  const getErrorMessage = (error: AuthError) => {
-    console.log("Processing auth error:", error);
-    
-    if (error instanceof AuthApiError) {
-      switch (error.status) {
-        case 400:
-          if (error.message.includes('Email not confirmed')) {
-            return 'Please verify your email address before signing in.';
-          }
-          if (error.message.includes('Invalid login credentials')) {
-            return 'The email or password you entered is incorrect. Please try again.';
-          }
-          return 'Invalid login attempt. Please check your credentials and try again.';
-        case 422:
-          return 'Please enter a valid email address.';
-        case 429:
-          return 'Too many login attempts. Please wait a moment before trying again.';
-        default:
-          return `Authentication error: ${error.message}`;
-      }
-    }
-    return `Unexpected error: ${error.message}`;
-  };
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-violet-50 via-slate-50 to-indigo-50">
@@ -99,12 +54,6 @@ const Login = () => {
               Sign in to continue to your account
             </p>
           </div>
-
-          {error && (
-            <Alert variant="destructive" className="mb-4">
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
-          )}
           
           <Auth
             supabaseClient={supabase}

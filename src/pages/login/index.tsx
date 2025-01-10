@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { AuthError } from "@supabase/supabase-js";
 
 const Login = () => {
   const navigate = useNavigate();
@@ -25,8 +26,6 @@ const Login = () => {
       }
     };
 
-    checkUser();
-
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (!mounted) return;
       
@@ -40,16 +39,29 @@ const Login = () => {
       } else if (event === 'USER_UPDATED') {
         const { error: sessionError } = await supabase.auth.getSession();
         if (sessionError) {
-          setError(sessionError.message);
+          setError(getErrorMessage(sessionError));
         }
       }
     });
+
+    checkUser();
 
     return () => {
       mounted = false;
       subscription.unsubscribe();
     };
   }, [navigate]);
+
+  const getErrorMessage = (error: AuthError) => {
+    switch (error.message) {
+      case 'Invalid login credentials':
+        return 'Invalid email or password. Please check your credentials and try again.';
+      case 'Email not confirmed':
+        return 'Please verify your email address before signing in.';
+      default:
+        return error.message;
+    }
+  };
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-violet-50 via-slate-50 to-indigo-50">

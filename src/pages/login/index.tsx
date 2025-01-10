@@ -17,12 +17,19 @@ const Login = () => {
     const checkUser = async () => {
       try {
         const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-        if (sessionError) throw sessionError;
+        if (sessionError) {
+          console.error("Session check error:", sessionError);
+          throw sessionError;
+        }
         if (session && mounted) {
+          console.log("User already has session, redirecting to dashboard");
           navigate('/');
         }
       } catch (err) {
         console.error("Session check error:", err);
+        if (err instanceof AuthError) {
+          setError(getErrorMessage(err));
+        }
       }
     };
 
@@ -35,12 +42,8 @@ const Login = () => {
         console.log("User signed in, redirecting to dashboard");
         navigate('/');
       } else if (event === 'SIGNED_OUT') {
+        console.log("User signed out, clearing error state");
         setError(null);
-      } else if (event === 'USER_UPDATED') {
-        const { error: sessionError } = await supabase.auth.getSession();
-        if (sessionError) {
-          setError(getErrorMessage(sessionError));
-        }
       }
     });
 
@@ -53,6 +56,7 @@ const Login = () => {
   }, [navigate]);
 
   const getErrorMessage = (error: AuthError) => {
+    console.log("Processing error:", error);
     switch (error.message) {
       case 'Invalid login credentials':
         return 'Invalid email or password. Please check your credentials and try again.';

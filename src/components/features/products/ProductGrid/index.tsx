@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { ProductData } from "../FileUpload";
 import { ProductCard } from "../ProductCard";
@@ -7,6 +8,7 @@ import { ProductSidebar } from "../ProductSidebar";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { Download, Eraser, FileDown } from "lucide-react";
+import JSZip from "jszip";
 
 interface ProductGridProps {
   products: ProductData[];
@@ -204,8 +206,7 @@ export const ProductGrid = ({ products, onImageProcessed }: ProductGridProps) =>
     
     try {
       console.log('Starting bulk download process');
-      // Dynamically import JSZip only when needed
-      const JSZip = (await import('jszip')).default;
+      // Use the imported JSZip directly instead of dynamic import
       const zip = new JSZip();
       
       // Create images folder
@@ -365,7 +366,7 @@ export const ProductGrid = ({ products, onImageProcessed }: ProductGridProps) =>
       }
     } catch (error) {
       console.error('Error creating bulk download:', error);
-      toast.error(`Failed to create bulk download: ${error.message}`);
+      toast.error(`Failed to create bulk download: ${error instanceof Error ? error.message : String(error)}`);
     } finally {
       setIsDownloading(false);
     }

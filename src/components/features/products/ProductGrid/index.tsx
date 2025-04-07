@@ -221,15 +221,16 @@ export const ProductGrid = ({ products, onImageProcessed }: ProductGridProps) =>
           const product = products[index];
           if (!product.processedImageUrl) continue;
           
-          // Create a sanitized filename to avoid issues with special characters
-          const sanitizedTitle = product.title
-            .replace(/[^\w\s\-_.]/g, '_')  // Replace special chars with underscore
-            .replace(/\s+/g, '_');         // Replace spaces with underscore
+          // Create a sanitized filename that preserves non-Latin characters
+          const productId = product.id || index;
+          const safeTitle = product.title
+            .replace(/[\/\\:*?"<>|]/g, '_') // Remove unsafe filename characters
+            .replace(/\s+/g, '_');          // Replace spaces with underscore
           
-          const filename = `${product.id || index}_${sanitizedTitle}.png`;
+          const filename = `${productId}_${safeTitle}.png`;
           
           // Add to CSV using the original title for reference
-          csvContent += `${product.id || index},"${product.title}",${filename}\n`;
+          csvContent += `${productId},"${product.title}",${filename}\n`;
           
           // Create canvas and apply background
           const canvas = document.createElement('canvas');
@@ -251,44 +252,60 @@ export const ProductGrid = ({ products, onImageProcessed }: ProductGridProps) =>
           // Apply background with proper handling of gradients, images and colors
           if (selectedColor.startsWith('linear-gradient')) {
             // Apply gradient background
-            const gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+            const gradientDirection = '0deg'; // Default direction
+            let colorStops = ['#ffffff', '#e2e2e2']; // Default colors
             
-            // Extract gradient stops if possible, or use default
+            // Extract gradient details
             try {
               const gradientMatch = selectedColor.match(/linear-gradient\(([^)]+)\)/);
               if (gradientMatch && gradientMatch[1]) {
                 const parts = gradientMatch[1].split(',');
-                // Handle angle and extract color stops
-                let startIndex = 0;
-                if (parts[0].includes('deg')) {
-                  startIndex = 1; // Skip the angle part
-                }
                 
-                // Simple extraction of two main colors
-                if (parts.length > startIndex + 1) {
-                  const firstColor = parts[startIndex].trim();
-                  const lastColor = parts[parts.length - 1].trim();
-                  
-                  gradient.addColorStop(0, firstColor);
-                  gradient.addColorStop(1, lastColor);
+                // Check if first part contains direction
+                if (parts[0].includes('deg')) {
+                  gradientDirection = parts[0].trim();
+                  colorStops = parts.slice(1).map(part => part.trim());
                 } else {
-                  // Fallback
-                  gradient.addColorStop(0, '#ffffff');
-                  gradient.addColorStop(1, '#e2e2e2');
+                  colorStops = parts.map(part => part.trim());
                 }
-              } else {
-                // Fallback for parsing errors
-                gradient.addColorStop(0, '#ffffff');
-                gradient.addColorStop(1, '#e2e2e2');
               }
             } catch (e) {
               console.error('Error parsing gradient:', e);
+            }
+            
+            // Create gradient
+            let gradient;
+            if (gradientDirection.includes('to right')) {
+              gradient = ctx.createLinearGradient(0, 0, canvas.width, 0);
+            } else if (gradientDirection.includes('to bottom') || gradientDirection.includes('180deg')) {
+              gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+            } else if (gradientDirection.includes('to left')) {
+              gradient = ctx.createLinearGradient(canvas.width, 0, 0, 0);
+            } else if (gradientDirection.includes('to top')) {
+              gradient = ctx.createLinearGradient(0, canvas.height, 0, 0);
+            } else {
+              // For any other angle, default to diagonal
+              gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+            }
+            
+            // Add color stops
+            if (colorStops.length >= 2) {
+              colorStops.forEach((color, index) => {
+                const offset = index / (colorStops.length - 1);
+                gradient.addColorStop(offset, color);
+              });
+            } else if (colorStops.length === 1) {
+              gradient.addColorStop(0, colorStops[0]);
+              gradient.addColorStop(1, colorStops[0]);
+            } else {
+              // Fallback
               gradient.addColorStop(0, '#ffffff');
               gradient.addColorStop(1, '#e2e2e2');
             }
             
             ctx.fillStyle = gradient;
             ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
           } else if (selectedColor.startsWith('url')) {
             // Handle background image
             try {

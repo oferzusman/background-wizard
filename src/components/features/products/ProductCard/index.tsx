@@ -47,6 +47,23 @@ export const ProductCard = ({
   handleDownloadOriginal,
   handleDownloadWithBackground,
 }: ProductCardProps) => {
+  // Calculate background style based on the selectedColor type
+  const getBackgroundStyle = () => {
+    if (selectedColor.startsWith('linear-gradient')) {
+      return { background: selectedColor };
+    } else if (selectedColor.startsWith('url')) {
+      return {
+        backgroundImage: selectedColor,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center'
+      };
+    } else {
+      // Regular color with opacity
+      const opacityHex = Math.round(opacity * 2.55).toString(16).padStart(2, "0");
+      return { backgroundColor: `${selectedColor}${opacityHex}` };
+    }
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0, scale: 0.95 }}
@@ -74,16 +91,7 @@ export const ProductCard = ({
         {product.processedImageUrl ? (
           <div
             className="w-full h-full relative"
-            style={{
-              background: selectedColor.startsWith('linear-gradient') 
-                ? selectedColor
-                : selectedColor.startsWith('url') 
-                  ? 'transparent' 
-                  : `${selectedColor}${Math.round(opacity * 2.55).toString(16).padStart(2, "0")}`,
-              backgroundImage: selectedColor.startsWith('url') ? selectedColor : 'none',
-              backgroundSize: 'cover',
-              backgroundPosition: 'center'
-            }}
+            style={getBackgroundStyle()}
           >
             <img
               src={product.processedImageUrl}

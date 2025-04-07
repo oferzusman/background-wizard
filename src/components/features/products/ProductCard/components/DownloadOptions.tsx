@@ -1,7 +1,7 @@
 
-import React from 'react';
-import { Image } from 'lucide-react';
+import React from "react";
 import { Button } from "@/components/ui/button";
+import { Download, Image } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -9,7 +9,6 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Download } from "lucide-react";
 
 interface DownloadOptionsProps {
   processedImageUrl: string;
@@ -21,8 +20,12 @@ interface DownloadOptionsProps {
     imageUrl: string,
     title: string,
     backgroundColor: string,
-    opacity: number
+    opacity: number,
+    topPadding?: number,
+    bottomPadding?: number
   ) => Promise<void>;
+  topPadding?: number;
+  bottomPadding?: number;
 }
 
 export const DownloadOptions: React.FC<DownloadOptionsProps> = ({
@@ -31,10 +34,10 @@ export const DownloadOptions: React.FC<DownloadOptionsProps> = ({
   selectedColor,
   opacity,
   handleDownloadOriginal,
-  handleDownloadWithBackground
+  handleDownloadWithBackground,
+  topPadding = 40,
+  bottomPadding = 40
 }) => {
-  if (!processedImageUrl) return null;
-  
   return (
     <Dialog>
       <DialogTrigger asChild>
@@ -49,7 +52,9 @@ export const DownloadOptions: React.FC<DownloadOptionsProps> = ({
         </DialogHeader>
         <div className="flex flex-col gap-4 pt-4">
           <Button
-            onClick={() => handleDownloadOriginal(processedImageUrl, title)}
+            onClick={() =>
+              handleDownloadOriginal(processedImageUrl, title)
+            }
             variant="outline"
             className="group"
           >
@@ -62,7 +67,9 @@ export const DownloadOptions: React.FC<DownloadOptionsProps> = ({
                 processedImageUrl,
                 title,
                 selectedColor,
-                opacity
+                opacity,
+                topPadding,
+                bottomPadding
               )
             }
             variant="default"

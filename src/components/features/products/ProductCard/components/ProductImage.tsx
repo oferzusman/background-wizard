@@ -15,6 +15,8 @@ interface ProductImageProps {
   opacity: number;
   processingIndex: number | null;
   currentIndex: number;
+  topPadding?: number;
+  bottomPadding?: number;
 }
 
 export const ProductImage: React.FC<ProductImageProps> = ({
@@ -25,13 +27,20 @@ export const ProductImage: React.FC<ProductImageProps> = ({
   selectedColor,
   opacity,
   processingIndex,
-  currentIndex
+  currentIndex,
+  topPadding = 40,
+  bottomPadding = 40
 }) => {
   const isProcessing = processingIndex === currentIndex;
   
+  const paddingStyle = {
+    paddingTop: `${topPadding}px`,
+    paddingBottom: `${bottomPadding}px`
+  };
+  
   return (
     <div className="relative">
-      <AspectRatio ratio={1} topMargin={40} bottomMargin={40}>
+      <AspectRatio ratio={1} topMargin={0} bottomMargin={0}>
         <div className="absolute top-3 left-3 z-10">
           <Checkbox
             checked={isSelected}
@@ -50,21 +59,29 @@ export const ProductImage: React.FC<ProductImageProps> = ({
         
         {processedImageUrl ? (
           <div
-            className="w-full h-full relative py-10"
-            style={getBackgroundStyle(selectedColor, opacity)}
+            className="w-full h-full relative"
+            style={{
+              ...getBackgroundStyle(selectedColor, opacity),
+              ...paddingStyle
+            }}
           >
             <img
               src={processedImageUrl}
               alt="Product"
-              className="w-full h-full object-contain absolute inset-0 transition-transform duration-300 group-hover:scale-105 p-10"
+              className="w-full h-full object-contain absolute inset-0 transition-transform duration-300 group-hover:scale-105"
             />
           </div>
         ) : (
-          <img
-            src={imageUrl}
-            alt="Product"
-            className="w-full h-full object-contain transition-transform duration-300 group-hover:scale-105 p-10"
-          />
+          <div 
+            className="w-full h-full"
+            style={paddingStyle}
+          >
+            <img
+              src={imageUrl}
+              alt="Product"
+              className="w-full h-full object-contain transition-transform duration-300 group-hover:scale-105"
+            />
+          </div>
         )}
         
         <LoadingOverlay isVisible={isProcessing} />

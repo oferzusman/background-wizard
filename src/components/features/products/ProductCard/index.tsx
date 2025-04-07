@@ -1,5 +1,5 @@
 
-import React from "react";
+import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
 import { Eraser } from "lucide-react";
@@ -25,6 +25,8 @@ interface ProductCardProps {
     backgroundColor: string,
     opacity: number
   ) => Promise<void>;
+  topPadding?: number;
+  bottomPadding?: number;
 }
 
 export const ProductCard = ({
@@ -40,6 +42,8 @@ export const ProductCard = ({
   handleClearBackground,
   handleDownloadOriginal,
   handleDownloadWithBackground,
+  topPadding = 40,
+  bottomPadding = 40
 }: ProductCardProps) => {
   return (
     <motion.div
@@ -59,6 +63,8 @@ export const ProductCard = ({
         opacity={opacity}
         processingIndex={processingIndex}
         currentIndex={index}
+        topPadding={topPadding}
+        bottomPadding={bottomPadding}
       />
 
       <div className="p-4 space-y-3">

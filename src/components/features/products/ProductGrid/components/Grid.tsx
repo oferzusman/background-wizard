@@ -20,6 +20,8 @@ interface GridProps {
     opacity: number
   ) => Promise<void>;
   onImageProcessed: (index: number, newImageUrl: string) => void;
+  topPadding?: number;
+  bottomPadding?: number;
 }
 
 export const Grid: React.FC<GridProps> = ({
@@ -33,7 +35,9 @@ export const Grid: React.FC<GridProps> = ({
   handleClearBackground,
   handleDownloadOriginal,
   handleDownloadWithBackground,
-  onImageProcessed
+  onImageProcessed,
+  topPadding = 40,
+  bottomPadding = 40
 }) => {
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
@@ -52,6 +56,8 @@ export const Grid: React.FC<GridProps> = ({
           handleClearBackground={handleClearBackground}
           handleDownloadOriginal={handleDownloadOriginal}
           handleDownloadWithBackground={handleDownloadWithBackground}
+          topPadding={topPadding}
+          bottomPadding={bottomPadding}
         />
       ))}
     </div>

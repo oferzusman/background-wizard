@@ -14,7 +14,9 @@ export const handleDownloadWithBackground = async (
   imageUrl: string,
   title: string,
   backgroundColor: string,
-  opacity: number
+  opacity: number,
+  topPadding = 40,
+  bottomPadding = 40
 ) => {
   try {
     const canvas = document.createElement('canvas');
@@ -30,11 +32,14 @@ export const handleDownloadWithBackground = async (
       img.src = imageUrl;
     });
 
+    // Add padding to canvas dimensions
     canvas.width = img.width;
-    canvas.height = img.height;
+    canvas.height = img.height + topPadding + bottomPadding;
 
     applyBackgroundToCanvas(ctx, canvas.width, canvas.height, backgroundColor, opacity);
-    ctx.drawImage(img, 0, 0);
+    
+    // Draw the image with top padding
+    ctx.drawImage(img, 0, topPadding);
 
     canvas.toBlob((blob) => {
       if (blob) {

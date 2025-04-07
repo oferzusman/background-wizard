@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
@@ -66,12 +67,28 @@ export const FileHistory = ({ onDataParsed }: FileHistoryProps) => {
     console.log("Reloading entry:", entry);
 
     try {
-      const response = await fetch(entry.file_url);
-      const content = await response.text();
-      const parsedData = await parseFileContent(content, entry.file_type);
-      onDataParsed(parsedData);
-      toast.success("File reloaded successfully!");
-      navigate('/'); // Redirect to main view after successful reload
+      // If the entry has a file_url, fetch it
+      if (entry.file_url) {
+        const response = await fetch(entry.file_url);
+        if (!response.ok) {
+          throw new Error(`Failed to fetch file: ${response.statusText}`);
+        }
+        
+        const content = await response.text();
+        console.log(`Fetched content for ${entry.file_type} file, length: ${content.length}`);
+        
+        // Ensure we're using the correct file type for parsing
+        const fileType = entry.file_type.toLowerCase();
+        console.log("Using file type for parsing:", fileType);
+        
+        const parsedData = await parseFileContent(content, fileType);
+        console.log("Successfully parsed data:", parsedData.length, "items");
+        
+        onDataParsed(parsedData);
+        toast.success(`Successfully loaded ${parsedData.length} products!`);
+      } else {
+        throw new Error("No file URL available");
+      }
     } catch (error) {
       console.error("Error reloading file:", error);
       toast.error(error instanceof Error ? error.message : "Error processing file");
@@ -83,30 +100,34 @@ export const FileHistory = ({ onDataParsed }: FileHistoryProps) => {
   return (
     <div className="space-y-4">
       <h3 className="text-lg font-semibold">File History</h3>
-      <div className="space-y-2">
-        {history.map((entry) => (
-          <div
-            key={entry.id}
-            className="flex items-center justify-between p-2 bg-white rounded-lg shadow"
-          >
-            <div>
-              <p className="font-medium">
-                {entry.original_filename || entry.file_url}
-              </p>
-              <p className="text-sm text-gray-500">
-                {new Date(entry.uploaded_at).toLocaleString()}
-              </p>
-            </div>
-            <Button
-              variant="outline"
-              onClick={() => handleReload(entry)}
-              disabled={isLoading}
+      {history.length === 0 ? (
+        <p className="text-sm text-gray-500">No upload history found</p>
+      ) : (
+        <div className="space-y-2">
+          {history.map((entry) => (
+            <div
+              key={entry.id}
+              className="flex items-center justify-between p-2 bg-white rounded-lg shadow"
             >
-              Reload
-            </Button>
-          </div>
-        ))}
-      </div>
+              <div>
+                <p className="font-medium">
+                  {entry.original_filename || entry.file_url}
+                </p>
+                <p className="text-sm text-gray-500">
+                  {new Date(entry.uploaded_at).toLocaleString()}
+                </p>
+              </div>
+              <Button
+                variant="outline"
+                onClick={() => handleReload(entry)}
+                disabled={isLoading}
+              >
+                {isLoading ? "Loading..." : "Reload"}
+              </Button>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 };

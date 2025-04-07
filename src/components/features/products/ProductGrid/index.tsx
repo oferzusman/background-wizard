@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { ProductData } from "../FileUpload";
 import { ProductCard } from "../ProductCard";
@@ -215,10 +216,18 @@ export const ProductGrid = ({ products, onImageProcessed }: ProductGridProps) =>
       
       let csvContent = "product_id,title,filename\n";
       
+      // Track processing progress
+      console.log(`Starting to process ${selectedProducts.length} images for download`);
+      
       for (const index of selectedProducts) {
         try {
           const product = products[index];
-          if (!product.processedImageUrl) continue;
+          if (!product.processedImageUrl) {
+            console.log(`Skipping product at index ${index} - no processed image`);
+            continue;
+          }
+          
+          console.log(`Processing product: ${product.title} at index ${index}`);
           
           // Create a sanitized filename that preserves non-Latin characters
           const productId = product.id || index;
@@ -227,6 +236,7 @@ export const ProductGrid = ({ products, onImageProcessed }: ProductGridProps) =>
             .replace(/\s+/g, '_');          // Replace spaces with underscore
           
           const filename = `${productId}_${safeTitle}.png`;
+          console.log(`Generated filename: ${filename}`);
           
           // Add to CSV using the original title for reference
           csvContent += `${productId},"${product.title}",${filename}\n`;
@@ -234,19 +244,30 @@ export const ProductGrid = ({ products, onImageProcessed }: ProductGridProps) =>
           // Create canvas and apply background
           const canvas = document.createElement('canvas');
           const ctx = canvas.getContext('2d');
-          if (!ctx) continue;
+          if (!ctx) {
+            console.error(`Could not get canvas context for product at index ${index}`);
+            continue;
+          }
           
           const img = new Image();
           img.crossOrigin = "anonymous";
           
           await new Promise((resolve, reject) => {
-            img.onload = resolve;
-            img.onerror = reject;
+            img.onload = () => {
+              console.log(`Image loaded successfully: ${product.processedImageUrl}`);
+              resolve(null);
+            };
+            img.onerror = (err) => {
+              console.error(`Image load error for ${product.processedImageUrl}:`, err);
+              reject(err);
+            };
             img.src = product.processedImageUrl!;
+            console.log(`Loading image from: ${product.processedImageUrl}`);
           });
           
           canvas.width = img.width;
           canvas.height = img.height;
+          console.log(`Canvas dimensions set: ${canvas.width}x${canvas.height}`);
           
           // Apply background with proper handling of gradients, images and colors
           if (selectedColor.startsWith('linear-gradient')) {
@@ -261,13 +282,14 @@ export const ProductGrid = ({ products, onImageProcessed }: ProductGridProps) =>
                 const parts = gradientMatch[1].split(',');
                 
                 // Check if first part contains direction
-                if (parts[0].includes('deg')) {
+                if (parts[0].includes('deg') || parts[0].includes('to ')) {
                   gradientDirection = parts[0].trim();
                   colorStops = parts.slice(1).map(part => part.trim());
                 } else {
                   colorStops = parts.map(part => part.trim());
                 }
               }
+              console.log(`Parsed gradient - Direction: ${gradientDirection}, Colors:`, colorStops);
             } catch (e) {
               console.error('Error parsing gradient:', e);
             }
@@ -304,6 +326,7 @@ export const ProductGrid = ({ products, onImageProcessed }: ProductGridProps) =>
             
             ctx.fillStyle = gradient;
             ctx.fillRect(0, 0, canvas.width, canvas.height);
+            console.log('Applied gradient background');
             
           } else if (selectedColor.startsWith('url')) {
             // Handle background image
@@ -318,29 +341,52 @@ export const ProductGrid = ({ products, onImageProcessed }: ProductGridProps) =>
               
               // Draw background image to fill canvas
               ctx.drawImage(bgImg, 0, 0, canvas.width, canvas.height);
+              console.log('Applied image background');
             } catch (err) {
               console.error('Error applying background image:', err);
               const opacityHex = Math.round(opacity[0] * 2.55).toString(16).padStart(2, "0");
               ctx.fillStyle = `#ffffff${opacityHex}`;
               ctx.fillRect(0, 0, canvas.width, canvas.height);
+              console.log('Applied fallback background due to image error');
             }
           } else {
             // Regular color with opacity
             const opacityHex = Math.round(opacity[0] * 2.55).toString(16).padStart(2, "0");
             ctx.fillStyle = `${selectedColor}${opacityHex}`;
             ctx.fillRect(0, 0, canvas.width, canvas.height);
+            console.log(`Applied color background: ${selectedColor}${opacityHex}`);
           }
           
           // Draw the image on top
           ctx.drawImage(img, 0, 0);
+          console.log('Drew the transparent image on top of background');
           
           // Convert to blob and add to zip
-          const imageBlob = await new Promise<Blob>((resolve) => 
-            canvas.toBlob((blob) => resolve(blob!), 'image/png')
-          );
+          const imageBlob = await new Promise<Blob | null>((resolve) => {
+            try {
+              canvas.toBlob((blob) => {
+                if (blob) {
+                  console.log(`Generated blob of size: ${blob.size} bytes`);
+                  resolve(blob);
+                } else {
+                  console.error('Blob generation returned null');
+                  resolve(null);
+                }
+              }, 'image/png');
+            } catch (e) {
+              console.error('Error generating blob:', e);
+              resolve(null);
+            }
+          });
           
-          imgFolder?.file(filename, imageBlob);
-          successCount++;
+          if (imageBlob) {
+            imgFolder?.file(filename, imageBlob);
+            console.log(`Added ${filename} to zip folder`);
+            successCount++;
+          } else {
+            console.error(`Failed to create blob for ${filename}`);
+            errorCount++;
+          }
         } catch (error) {
           console.error(`Error processing image at index ${index}:`, error);
           errorCount++;
@@ -349,13 +395,24 @@ export const ProductGrid = ({ products, onImageProcessed }: ProductGridProps) =>
       
       // Add CSV file to zip
       zip.file("product_images.csv", csvContent);
+      console.log('Added CSV to zip with content length:', csvContent.length);
       
       // Generate and download the zip
-      const zipBlob = await zip.generateAsync({ type: "blob" });
+      console.log('Generating ZIP archive...');
+      const zipBlob = await zip.generateAsync({ 
+        type: "blob",
+        compression: "DEFLATE",
+        compressionOptions: {
+          level: 6
+        }
+      });
+      console.log(`Generated ZIP blob of size: ${zipBlob.size} bytes`);
+      
       const link = document.createElement('a');
       link.href = URL.createObjectURL(zipBlob);
       link.download = "product_images.zip";
       document.body.appendChild(link);
+      console.log('Starting download...');
       link.click();
       document.body.removeChild(link);
       URL.revokeObjectURL(link.href);

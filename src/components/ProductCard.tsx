@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { ProductData } from "./FileUpload";
 import { Button } from "@/components/ui/button";
@@ -46,6 +45,22 @@ export const ProductCard = ({
   handleDownloadOriginal,
   handleDownloadWithBackground,
 }: ProductCardProps) => {
+  const getBackgroundStyle = () => {
+    if (selectedColor.startsWith('linear-gradient')) {
+      return { background: selectedColor };
+    } else if (selectedColor.startsWith('url')) {
+      return {
+        backgroundImage: selectedColor,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center'
+      };
+    } else {
+      // Regular color with opacity
+      const opacityHex = Math.round(opacity * 2.55).toString(16).padStart(2, "0");
+      return { backgroundColor: `${selectedColor}${opacityHex}` };
+    }
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0, scale: 0.95 }}
@@ -74,11 +89,7 @@ export const ProductCard = ({
           {product.processedImageUrl ? (
             <div
               className="w-full h-full relative"
-              style={{
-                backgroundColor: `${selectedColor}${Math.round(opacity * 2.55)
-                  .toString(16)
-                  .padStart(2, "0")}`,
-              }}
+              style={getBackgroundStyle()}
             >
               <img
                 src={product.processedImageUrl}

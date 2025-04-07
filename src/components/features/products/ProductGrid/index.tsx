@@ -236,8 +236,7 @@ export const ProductGrid = ({ products, onImageProcessed }: ProductGridProps) =>
           csvContent += `${productId},"${product.title}",images/${filename}\n`;
           
           try {
-            // Instead of just fetching the image, we need to apply the background
-            // First, fetch the transparent image
+            // Fetch the transparent image
             const response = await fetch(product.processedImageUrl);
             if (!response.ok) {
               throw new Error(`Failed to fetch image: ${response.statusText}`);
@@ -265,11 +264,84 @@ export const ProductGrid = ({ products, onImageProcessed }: ProductGridProps) =>
             
             // Apply the background based on type (color, gradient, or image)
             if (selectedColor.startsWith('linear-gradient')) {
-              const gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
-              gradient.addColorStop(0, '#ffffff');
-              gradient.addColorStop(1, '#e2e2e2');
+              console.log('Applying gradient background:', selectedColor);
+              
+              // For gradients, create a proper gradient on the canvas
+              const gradientString = selectedColor;
+              let gradientAngle = 0;
+              let gradientStops: [number, string][] = [];
+              
+              // Parse the gradient string to extract angle and color stops
+              const angleMatch = gradientString.match(/linear-gradient\((\d+)deg/);
+              if (angleMatch && angleMatch[1]) {
+                gradientAngle = parseInt(angleMatch[1], 10);
+              } else if (gradientString.includes('to right')) {
+                gradientAngle = 90;
+              } else if (gradientString.includes('to left')) {
+                gradientAngle = 270;
+              } else if (gradientString.includes('to top')) {
+                gradientAngle = 0;
+              } else if (gradientString.includes('to bottom')) {
+                gradientAngle = 180;
+              }
+              
+              // Extract color stops
+              const colorStopRegex = /(#[0-9a-f]{3,8}|rgba?\([^)]+\)|hsla?\([^)]+\))\s*(\d+%)?/gi;
+              let match;
+              let colorStops: {color: string, position: number}[] = [];
+              
+              while ((match = colorStopRegex.exec(gradientString)) !== null) {
+                const color = match[1];
+                let position = match[2] ? parseInt(match[2], 10) / 100 : null;
+                
+                if (position === null) {
+                  // If position is not specified, distribute evenly
+                  colorStops.push({ color, position: -1 }); // -1 is a placeholder
+                } else {
+                  colorStops.push({ color, position });
+                }
+              }
+              
+              // Assign positions to stops without explicit positions
+              const unpositionedStops = colorStops.filter(stop => stop.position === -1);
+              if (unpositionedStops.length > 0) {
+                const positionedCount = colorStops.length - unpositionedStops.length;
+                const step = positionedCount > 0 ? 1 / (unpositionedStops.length + 1) : 1 / unpositionedStops.length;
+                
+                let current = 0;
+                for (const stop of colorStops) {
+                  if (stop.position === -1) {
+                    current += step;
+                    stop.position = current;
+                  }
+                }
+              }
+              
+              // If no valid stops were found, fall back to a default gradient
+              if (colorStops.length === 0) {
+                colorStops = [{ color: '#ffffff', position: 0 }, { color: '#e2e2e2', position: 1 }];
+              }
+              
+              // Create gradient based on the angle
+              let gradient;
+              
+              // Convert angle to radians and calculate start/end points
+              const angleRad = (angleMatch ? gradientAngle : 90) * Math.PI / 180;
+              const startX = canvas.width / 2 - Math.cos(angleRad) * canvas.width;
+              const startY = canvas.height / 2 - Math.sin(angleRad) * canvas.height;
+              const endX = canvas.width / 2 + Math.cos(angleRad) * canvas.width;
+              const endY = canvas.height / 2 + Math.sin(angleRad) * canvas.height;
+              
+              gradient = ctx.createLinearGradient(startX, startY, endX, endY);
+              
+              // Add color stops to gradient
+              colorStops.forEach(stop => {
+                gradient.addColorStop(stop.position, stop.color);
+              });
+              
               ctx.fillStyle = gradient;
               ctx.fillRect(0, 0, canvas.width, canvas.height);
+              console.log('Applied gradient background successfully');
             } else if (selectedColor.startsWith('url')) {
               try {
                 // If it's a background image

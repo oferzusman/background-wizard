@@ -1,11 +1,11 @@
 
-import { RootLayout } from "./app/layout";
+import { Providers } from "./app/providers";
 import AppPage from "./app/page";
 
 const App = () => (
-  <RootLayout>
+  <Providers>
     <AppPage />
-  </RootLayout>
+  </Providers>
 );
 
 export default App;

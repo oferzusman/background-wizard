@@ -6,7 +6,6 @@ const AppPage = () => (
   <Routes>
     <Route path="/" element={<Dashboard />} />
     <Route path="/dashboard" element={<Dashboard />} />
-    <Route path="/login" element={<Navigate to="/" replace />} />
     <Route path="*" element={<Navigate to="/" replace />} />
   </Routes>
 );

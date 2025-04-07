@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { ProductData } from "../FileUpload";
 import { ProductCard } from "../ProductCard";
@@ -235,21 +234,87 @@ export const ProductGrid = ({ products, onImageProcessed }: ProductGridProps) =>
           
           csvContent += `${productId},"${product.title}",images/${filename}\n`;
           
-          // Create image with background
           try {
-            // Fetch the image directly from the URL
+            // Instead of just fetching the image, we need to apply the background
+            // First, fetch the transparent image
             const response = await fetch(product.processedImageUrl);
             if (!response.ok) {
               throw new Error(`Failed to fetch image: ${response.statusText}`);
             }
             
-            // Get the image as blob
+            // Create an image element from the blob
             const imageBlob = await response.blob();
-            console.log(`Successfully fetched image, size: ${imageBlob.size} bytes`);
+            const img = new Image();
+            const imgLoaded = new Promise((resolve, reject) => {
+              img.onload = resolve;
+              img.onerror = reject;
+              img.src = URL.createObjectURL(imageBlob);
+            });
+            await imgLoaded;
             
-            // Add the image blob to the zip
-            imgFolder.file(filename, imageBlob);
+            // Create a canvas to apply the background
+            const canvas = document.createElement('canvas');
+            canvas.width = img.width;
+            canvas.height = img.height;
+            const ctx = canvas.getContext('2d');
+            
+            if (!ctx) {
+              throw new Error('Could not get canvas context');
+            }
+            
+            // Apply the background based on type (color, gradient, or image)
+            if (selectedColor.startsWith('linear-gradient')) {
+              const gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+              gradient.addColorStop(0, '#ffffff');
+              gradient.addColorStop(1, '#e2e2e2');
+              ctx.fillStyle = gradient;
+              ctx.fillRect(0, 0, canvas.width, canvas.height);
+            } else if (selectedColor.startsWith('url')) {
+              try {
+                // If it's a background image
+                const bgImg = new Image();
+                bgImg.crossOrigin = "anonymous";
+                await new Promise((resolve, reject) => {
+                  bgImg.onload = resolve;
+                  bgImg.onerror = reject;
+                  bgImg.src = selectedColor.slice(4, -1).replace(/["']/g, '');
+                });
+                
+                // Draw the background image stretched to fill canvas
+                ctx.drawImage(bgImg, 0, 0, canvas.width, canvas.height);
+              } catch (err) {
+                console.error('Error applying background image:', err);
+                // Fallback to white if background image fails
+                const opacityHex = Math.round(opacity[0] * 2.55).toString(16).padStart(2, "0");
+                ctx.fillStyle = `#ffffff${opacityHex}`;
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+              }
+            } else {
+              // If it's a solid color with opacity
+              const opacityHex = Math.round(opacity[0] * 2.55).toString(16).padStart(2, "0");
+              ctx.fillStyle = `${selectedColor}${opacityHex}`;
+              ctx.fillRect(0, 0, canvas.width, canvas.height);
+            }
+            
+            // Draw the transparent image on top
+            ctx.drawImage(img, 0, 0);
+            
+            // Convert canvas to blob
+            const processedBlob = await new Promise<Blob>((resolve, reject) => {
+              canvas.toBlob(blob => {
+                if (blob) resolve(blob);
+                else reject(new Error('Failed to create image blob'));
+              }, 'image/png');
+            });
+            
+            console.log(`Successfully created image with background, size: ${processedBlob.size} bytes`);
+            
+            // Add the processed image blob to the zip
+            imgFolder.file(filename, processedBlob);
             console.log(`Added ${filename} to zip folder`);
+            
+            // Cleanup
+            URL.revokeObjectURL(img.src);
             successCount++;
           } catch (error) {
             console.error(`Error processing image at index ${index}:`, error);

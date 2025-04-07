@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { ProductData } from "../FileUpload";
 import { ProductCard } from "../ProductCard";
@@ -252,7 +251,7 @@ export const ProductGrid = ({ products, onImageProcessed }: ProductGridProps) =>
           // Apply background with proper handling of gradients, images and colors
           if (selectedColor.startsWith('linear-gradient')) {
             // Apply gradient background
-            const gradientDirection = '0deg'; // Default direction
+            let gradientDirection = '0deg'; // Changed from const to let
             let colorStops = ['#ffffff', '#e2e2e2']; // Default colors
             
             // Extract gradient details

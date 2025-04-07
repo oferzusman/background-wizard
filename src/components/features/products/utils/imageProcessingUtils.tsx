@@ -1,5 +1,5 @@
-
 import JSZip from "jszip";
+import { ProductData } from "@/types/product.types";
 
 export const handleDownloadOriginal = (imageUrl: string, title: string) => {
   const link = document.createElement("a");
@@ -65,7 +65,6 @@ export const applyBackgroundToCanvas = (
     const gradientString = backgroundColor;
     let gradientAngle = 0;
     
-    // Parse the gradient string to extract angle
     const angleMatch = gradientString.match(/linear-gradient\((\d+)deg/);
     if (angleMatch && angleMatch[1]) {
       gradientAngle = parseInt(angleMatch[1], 10);
@@ -79,43 +78,25 @@ export const applyBackgroundToCanvas = (
       gradientAngle = 180;
     }
     
-    // Extract color stops
-    const colorStopRegex = /(#[0-9a-f]{3,8}|rgba?\([^)]+\)|hsla?\([^)]+\))\s*(\d+%)?/gi;
     let match;
     let colorStops: {color: string, position: number}[] = [];
     
+    const colorStopRegex = /(#[0-9a-f]{3,8}|rgba?\([^)]+\)|hsla?\([^)]+\))\s*(\d+%)?/gi;
     while ((match = colorStopRegex.exec(gradientString)) !== null) {
       const color = match[1];
       let position = match[2] ? parseInt(match[2], 10) / 100 : null;
       
       if (position === null) {
-        colorStops.push({ color, position: -1 }); // -1 is a placeholder
+        colorStops.push({ color, position: -1 });
       } else {
         colorStops.push({ color, position });
       }
     }
     
-    // Assign positions to stops without explicit positions
-    const unpositionedStops = colorStops.filter(stop => stop.position === -1);
-    if (unpositionedStops.length > 0) {
-      const positionedCount = colorStops.length - unpositionedStops.length;
-      const step = positionedCount > 0 ? 1 / (unpositionedStops.length + 1) : 1 / unpositionedStops.length;
-      
-      let current = 0;
-      for (const stop of colorStops) {
-        if (stop.position === -1) {
-          current += step;
-          stop.position = current;
-        }
-      }
-    }
-    
-    // If no valid stops were found, fall back to a default gradient
     if (colorStops.length === 0) {
       colorStops = [{ color: '#ffffff', position: 0 }, { color: '#e2e2e2', position: 1 }];
     }
     
-    // Convert angle to radians and calculate start/end points
     const angleRad = (angleMatch ? gradientAngle : 90) * Math.PI / 180;
     const startX = width / 2 - Math.cos(angleRad) * width;
     const startY = height / 2 - Math.sin(angleRad) * height;
@@ -124,7 +105,6 @@ export const applyBackgroundToCanvas = (
     
     const gradient = ctx.createLinearGradient(startX, startY, endX, endY);
     
-    // Add color stops to gradient
     colorStops.forEach(stop => {
       gradient.addColorStop(stop.position, stop.color);
     });
@@ -133,20 +113,15 @@ export const applyBackgroundToCanvas = (
     ctx.fillRect(0, 0, width, height);
   } else if (backgroundColor.startsWith('url')) {
     try {
-      // If it's a background image, we need to handle it separately
-      // This would require loading the image first, then drawing it
-      // This is handled asyncronously in the bulk download function
       ctx.fillStyle = '#ffffff';
       ctx.fillRect(0, 0, width, height);
     } catch (err) {
       console.error('Error applying background image:', err);
-      // Fallback to white if background image fails
       const opacityHex = Math.round(opacity * 2.55).toString(16).padStart(2, "0");
       ctx.fillStyle = `#ffffff${opacityHex}`;
       ctx.fillRect(0, 0, width, height);
     }
   } else {
-    // If it's a solid color with opacity
     const opacityHex = Math.round(opacity * 2.55).toString(16).padStart(2, "0");
     ctx.fillStyle = `${backgroundColor}${opacityHex}`;
     ctx.fillRect(0, 0, width, height);
@@ -172,7 +147,6 @@ export const handleBulkDownloadWithBackground = async (
     console.log('Starting bulk download process');
     const zip = new JSZip();
     
-    // Create images folder
     const imgFolder = zip.folder("images");
     if (!imgFolder) {
       throw new Error("Failed to create images folder in zip");
@@ -199,13 +173,11 @@ export const handleBulkDownloadWithBackground = async (
         csvContent += `${productId},"${product.title}",images/${filename}\n`;
         
         try {
-          // Fetch the transparent image
           const response = await fetch(product.processedImageUrl);
           if (!response.ok) {
             throw new Error(`Failed to fetch image: ${response.statusText}`);
           }
           
-          // Create an image element from the blob
           const imageBlob = await response.blob();
           const img = new Image();
           const imgLoaded = new Promise((resolve, reject) => {
@@ -215,7 +187,6 @@ export const handleBulkDownloadWithBackground = async (
           });
           await imgLoaded;
           
-          // Create a canvas to apply the background
           const canvas = document.createElement('canvas');
           canvas.width = img.width;
           canvas.height = img.height;
@@ -225,10 +196,8 @@ export const handleBulkDownloadWithBackground = async (
             throw new Error('Could not get canvas context');
           }
           
-          // Apply the background based on type
           if (selectedColor.startsWith('url')) {
             try {
-              // If it's a background image
               const bgImg = new Image();
               bgImg.crossOrigin = "anonymous";
               await new Promise((resolve, reject) => {
@@ -237,24 +206,19 @@ export const handleBulkDownloadWithBackground = async (
                 bgImg.src = selectedColor.slice(4, -1).replace(/["']/g, '');
               });
               
-              // Draw the background image stretched to fill canvas
               ctx.drawImage(bgImg, 0, 0, canvas.width, canvas.height);
             } catch (err) {
               console.error('Error applying background image:', err);
-              // Fallback to white if background image fails
               const opacityHex = Math.round(opacity[0] * 2.55).toString(16).padStart(2, "0");
               ctx.fillStyle = `#ffffff${opacityHex}`;
               ctx.fillRect(0, 0, canvas.width, canvas.height);
             }
           } else {
-            // For regular colors or gradients
             applyBackgroundToCanvas(ctx, canvas.width, canvas.height, selectedColor, opacity[0]);
           }
           
-          // Draw the transparent image on top
           ctx.drawImage(img, 0, 0);
           
-          // Convert canvas to blob
           const processedBlob = await new Promise<Blob>((resolve, reject) => {
             canvas.toBlob(blob => {
               if (blob) resolve(blob);
@@ -264,11 +228,9 @@ export const handleBulkDownloadWithBackground = async (
           
           console.log(`Successfully created image with background, size: ${processedBlob.size} bytes`);
           
-          // Add the processed image blob to the zip
           imgFolder.file(filename, processedBlob);
           console.log(`Added ${filename} to zip folder`);
           
-          // Cleanup
           URL.revokeObjectURL(img.src);
           successCount++;
         } catch (error) {
@@ -281,11 +243,9 @@ export const handleBulkDownloadWithBackground = async (
       }
     }
     
-    // Add CSV file with product info
     zip.file("product_images.csv", csvContent);
     console.log('Added CSV to zip with content length:', csvContent.length);
     
-    // Generate and download the zip file
     const zipBlob = await zip.generateAsync({ 
       type: "blob",
       compression: "DEFLATE",

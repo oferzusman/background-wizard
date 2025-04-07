@@ -208,6 +208,10 @@ export const ProductGrid = ({ products, onImageProcessed }: ProductGridProps) =>
       const zip = new JSZip();
       const imgFolder = zip.folder("images");
       
+      if (!imgFolder) {
+        throw new Error("Failed to create images folder in zip");
+      }
+      
       let csvContent = "product_id,title,filename\n";
       
       console.log(`Starting to process ${selectedProducts.length} images for download`);
@@ -291,12 +295,14 @@ export const ProductGrid = ({ products, onImageProcessed }: ProductGridProps) =>
             
             if (colorStops.length >= 2) {
               colorStops.forEach((color, index) => {
+                const cleanColor = color.split(' ')[0].trim();
                 const offset = index / (colorStops.length - 1);
-                gradient.addColorStop(offset, color);
+                gradient.addColorStop(offset, cleanColor);
               });
             } else if (colorStops.length === 1) {
-              gradient.addColorStop(0, colorStops[0]);
-              gradient.addColorStop(1, colorStops[0]);
+              const cleanColor = colorStops[0].split(' ')[0].trim();
+              gradient.addColorStop(0, cleanColor);
+              gradient.addColorStop(1, cleanColor);
             } else {
               gradient.addColorStop(0, '#ffffff');
               gradient.addColorStop(1, '#e2e2e2');
@@ -335,31 +341,19 @@ export const ProductGrid = ({ products, onImageProcessed }: ProductGridProps) =>
           ctx.drawImage(img, 0, 0);
           console.log('Drew the transparent image on top of background');
           
-          const imageBlob = await new Promise<Blob | null>((resolve) => {
-            try {
-              canvas.toBlob((blob) => {
-                if (blob) {
-                  console.log(`Generated blob of size: ${blob.size} bytes`);
-                  resolve(blob);
-                } else {
-                  console.error('Blob generation returned null');
-                  resolve(null);
-                }
-              }, 'image/png');
-            } catch (e) {
-              console.error('Error generating blob:', e);
-              resolve(null);
-            }
+          const blob = await new Promise<Blob | null>((resolve) => {
+            canvas.toBlob((b) => resolve(b), 'image/png', 1.0);
           });
           
-          if (imageBlob) {
-            imgFolder?.file(filename, imageBlob);
-            console.log(`Added ${filename} to zip folder`);
-            successCount++;
-          } else {
+          if (!blob) {
             console.error(`Failed to create blob for ${filename}`);
-            errorCount++;
+            throw new Error(`Failed to create image blob for ${filename}`);
           }
+          
+          console.log(`Successfully created blob for ${filename}, size: ${blob.size} bytes`);
+          imgFolder.file(filename, blob);
+          console.log(`Added ${filename} to zip folder`);
+          successCount++;
         } catch (error) {
           console.error(`Error processing image at index ${index}:`, error);
           errorCount++;
@@ -387,7 +381,11 @@ export const ProductGrid = ({ products, onImageProcessed }: ProductGridProps) =>
       document.body.removeChild(link);
       URL.revokeObjectURL(link.href);
       
-      toast.success(`Downloaded ${successCount} images with CSV data`);
+      if (successCount > 0) {
+        toast.success(`Downloaded ${successCount} images with CSV data`);
+      } else {
+        toast.warning('No images were included in the download');
+      }
     } catch (error) {
       console.error('Error creating bulk download:', error);
       toast.error('Failed to create bulk download');

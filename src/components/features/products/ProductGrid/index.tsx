@@ -146,23 +146,39 @@ export const ProductGrid = ({ products, onImageProcessed }: ProductGridProps) =>
       canvas.width = img.width;
       canvas.height = img.height;
 
-      // Apply background color with opacity
-      const opacityHex = Math.round(opacity * 2.55).toString(16).padStart(2, '0');
-      
+      // Apply background
       if (backgroundColor.startsWith('linear-gradient')) {
+        // Create gradient
         const gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
         gradient.addColorStop(0, '#ffffff');
         gradient.addColorStop(1, '#e2e2e2');
         ctx.fillStyle = gradient;
       } else if (backgroundColor.startsWith('url')) {
-        ctx.fillStyle = `#ffffff${opacityHex}`;
+        // Handle background image
+        try {
+          const bgImg = new Image();
+          bgImg.crossOrigin = "anonymous";
+          await new Promise((resolve, reject) => {
+            bgImg.onload = resolve;
+            bgImg.onerror = reject;
+            bgImg.src = backgroundColor.slice(4, -1).replace(/["']/g, '');
+          });
+          
+          // Draw background image to fill canvas
+          ctx.drawImage(bgImg, 0, 0, canvas.width, canvas.height);
+        } catch (err) {
+          console.error('Error applying background image:', err);
+          ctx.fillStyle = `#ffffff${Math.round(opacity * 2.55).toString(16).padStart(2, "0")}`;
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+        }
       } else {
+        // Regular color with opacity
+        const opacityHex = Math.round(opacity * 2.55).toString(16).padStart(2, "0");
         ctx.fillStyle = `${backgroundColor}${opacityHex}`;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
       }
-      
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-      
-      // Draw the image on top of the background
+
+      // Draw the image on top
       ctx.drawImage(img, 0, 0);
 
       canvas.toBlob((blob) => {
@@ -205,8 +221,14 @@ export const ProductGrid = ({ products, onImageProcessed }: ProductGridProps) =>
           const product = products[index];
           if (!product.processedImageUrl) continue;
           
-          const filename = `${product.id || index}-${product.title.replace(/[^a-z0-9]/gi, '_')}.png`;
+          // Create a sanitized filename to avoid issues with special characters
+          const sanitizedTitle = product.title
+            .replace(/[^\w\s\-_.]/g, '_')  // Replace special chars with underscore
+            .replace(/\s+/g, '_');         // Replace spaces with underscore
           
+          const filename = `${product.id || index}_${sanitizedTitle}.png`;
+          
+          // Add to CSV using the original title for reference
           csvContent += `${product.id || index},"${product.title}",${filename}\n`;
           
           // Create canvas and apply background
@@ -226,41 +248,72 @@ export const ProductGrid = ({ products, onImageProcessed }: ProductGridProps) =>
           canvas.width = img.width;
           canvas.height = img.height;
           
-          // Apply background color with opacity
-          const opacityHex = Math.round(opacity[0] * 2.55).toString(16).padStart(2, '0');
-          
+          // Apply background with proper handling of gradients, images and colors
           if (selectedColor.startsWith('linear-gradient')) {
+            // Apply gradient background
             const gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
-            gradient.addColorStop(0, '#ffffff');
-            gradient.addColorStop(1, '#e2e2e2');
+            
+            // Extract gradient stops if possible, or use default
+            try {
+              const gradientMatch = selectedColor.match(/linear-gradient\(([^)]+)\)/);
+              if (gradientMatch && gradientMatch[1]) {
+                const parts = gradientMatch[1].split(',');
+                // Handle angle and extract color stops
+                let startIndex = 0;
+                if (parts[0].includes('deg')) {
+                  startIndex = 1; // Skip the angle part
+                }
+                
+                // Simple extraction of two main colors
+                if (parts.length > startIndex + 1) {
+                  const firstColor = parts[startIndex].trim();
+                  const lastColor = parts[parts.length - 1].trim();
+                  
+                  gradient.addColorStop(0, firstColor);
+                  gradient.addColorStop(1, lastColor);
+                } else {
+                  // Fallback
+                  gradient.addColorStop(0, '#ffffff');
+                  gradient.addColorStop(1, '#e2e2e2');
+                }
+              } else {
+                // Fallback for parsing errors
+                gradient.addColorStop(0, '#ffffff');
+                gradient.addColorStop(1, '#e2e2e2');
+              }
+            } catch (e) {
+              console.error('Error parsing gradient:', e);
+              gradient.addColorStop(0, '#ffffff');
+              gradient.addColorStop(1, '#e2e2e2');
+            }
+            
             ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
           } else if (selectedColor.startsWith('url')) {
             // Handle background image
             try {
-              if (selectedColor.startsWith('url(')) {
-                const bgImg = new Image();
-                bgImg.crossOrigin = "anonymous";
-                await new Promise((resolve, reject) => {
-                  bgImg.onload = resolve;
-                  bgImg.onerror = reject;
-                  bgImg.src = selectedColor.slice(4, -1);
-                });
-                
-                // Create pattern or stretch to fill
-                const pattern = ctx.createPattern(bgImg, 'repeat');
-                ctx.fillStyle = pattern || `#ffffff${opacityHex}`;
-              } else {
-                ctx.fillStyle = `#ffffff${opacityHex}`;
-              }
+              const bgImg = new Image();
+              bgImg.crossOrigin = "anonymous";
+              await new Promise((resolve, reject) => {
+                bgImg.onload = resolve;
+                bgImg.onerror = reject;
+                bgImg.src = selectedColor.slice(4, -1).replace(/["']/g, '');
+              });
+              
+              // Draw background image to fill canvas
+              ctx.drawImage(bgImg, 0, 0, canvas.width, canvas.height);
             } catch (err) {
               console.error('Error applying background image:', err);
+              const opacityHex = Math.round(opacity[0] * 2.55).toString(16).padStart(2, "0");
               ctx.fillStyle = `#ffffff${opacityHex}`;
+              ctx.fillRect(0, 0, canvas.width, canvas.height);
             }
           } else {
+            // Regular color with opacity
+            const opacityHex = Math.round(opacity[0] * 2.55).toString(16).padStart(2, "0");
             ctx.fillStyle = `${selectedColor}${opacityHex}`;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
           }
-          
-          ctx.fillRect(0, 0, canvas.width, canvas.height);
           
           // Draw the image on top
           ctx.drawImage(img, 0, 0);

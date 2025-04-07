@@ -75,9 +75,11 @@ export const ProductCard = ({
           <div
             className="w-full h-full relative"
             style={{
-              backgroundColor: selectedColor.startsWith('url') 
-                ? 'transparent' 
-                : `${selectedColor}${Math.round(opacity * 2.55).toString(16).padStart(2, "0")}`,
+              background: selectedColor.startsWith('linear-gradient') 
+                ? selectedColor
+                : selectedColor.startsWith('url') 
+                  ? 'transparent' 
+                  : `${selectedColor}${Math.round(opacity * 2.55).toString(16).padStart(2, "0")}`,
               backgroundImage: selectedColor.startsWith('url') ? selectedColor : 'none',
               backgroundSize: 'cover',
               backgroundPosition: 'center'

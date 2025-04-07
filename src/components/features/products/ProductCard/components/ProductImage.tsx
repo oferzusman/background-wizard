@@ -50,20 +50,20 @@ export const ProductImage: React.FC<ProductImageProps> = ({
         
         {processedImageUrl ? (
           <div
-            className="w-full h-full relative"
+            className="w-full h-full relative py-10"
             style={getBackgroundStyle(selectedColor, opacity)}
           >
             <img
               src={processedImageUrl}
               alt="Product"
-              className="w-full h-full object-contain p-4 absolute inset-0 transition-transform duration-300 group-hover:scale-105"
+              className="w-full h-full object-contain absolute inset-0 transition-transform duration-300 group-hover:scale-105 p-10"
             />
           </div>
         ) : (
           <img
             src={imageUrl}
             alt="Product"
-            className="w-full h-full object-contain p-4 transition-transform duration-300 group-hover:scale-105"
+            className="w-full h-full object-contain transition-transform duration-300 group-hover:scale-105 p-10"
           />
         )}
         

@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { ProductData } from "../FileUpload";
 import { ProductCard } from "../ProductCard";
@@ -146,15 +145,12 @@ export const ProductGrid = ({ products, onImageProcessed }: ProductGridProps) =>
       canvas.width = img.width;
       canvas.height = img.height;
 
-      // Apply background
       if (backgroundColor.startsWith('linear-gradient')) {
-        // Create gradient
         const gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
         gradient.addColorStop(0, '#ffffff');
         gradient.addColorStop(1, '#e2e2e2');
         ctx.fillStyle = gradient;
       } else if (backgroundColor.startsWith('url')) {
-        // Handle background image
         try {
           const bgImg = new Image();
           bgImg.crossOrigin = "anonymous";
@@ -164,7 +160,6 @@ export const ProductGrid = ({ products, onImageProcessed }: ProductGridProps) =>
             bgImg.src = backgroundColor.slice(4, -1).replace(/["']/g, '');
           });
           
-          // Draw background image to fill canvas
           ctx.drawImage(bgImg, 0, 0, canvas.width, canvas.height);
         } catch (err) {
           console.error('Error applying background image:', err);
@@ -172,13 +167,11 @@ export const ProductGrid = ({ products, onImageProcessed }: ProductGridProps) =>
           ctx.fillRect(0, 0, canvas.width, canvas.height);
         }
       } else {
-        // Regular color with opacity
         const opacityHex = Math.round(opacity * 2.55).toString(16).padStart(2, "0");
         ctx.fillStyle = `${backgroundColor}${opacityHex}`;
         ctx.fillRect(0, 0, canvas.width, canvas.height);
       }
 
-      // Draw the image on top
       ctx.drawImage(img, 0, 0);
 
       canvas.toBlob((blob) => {
@@ -210,13 +203,13 @@ export const ProductGrid = ({ products, onImageProcessed }: ProductGridProps) =>
     let errorCount = 0;
     
     try {
+      console.log('Starting bulk download process');
       const JSZip = (await import('jszip')).default;
       const zip = new JSZip();
       const imgFolder = zip.folder("images");
       
       let csvContent = "product_id,title,filename\n";
       
-      // Track processing progress
       console.log(`Starting to process ${selectedProducts.length} images for download`);
       
       for (const index of selectedProducts) {
@@ -229,19 +222,12 @@ export const ProductGrid = ({ products, onImageProcessed }: ProductGridProps) =>
           
           console.log(`Processing product: ${product.title} at index ${index}`);
           
-          // Create a sanitized filename that preserves non-Latin characters
-          const productId = product.id || index;
-          const safeTitle = product.title
-            .replace(/[\/\\:*?"<>|]/g, '_') // Remove unsafe filename characters
-            .replace(/\s+/g, '_');          // Replace spaces with underscore
-          
-          const filename = `${productId}_${safeTitle}.png`;
+          const productId = product.id || `item-${index}`;
+          const filename = `${productId}.png`;
           console.log(`Generated filename: ${filename}`);
           
-          // Add to CSV using the original title for reference
           csvContent += `${productId},"${product.title}",${filename}\n`;
           
-          // Create canvas and apply background
           const canvas = document.createElement('canvas');
           const ctx = canvas.getContext('2d');
           if (!ctx) {
@@ -269,19 +255,15 @@ export const ProductGrid = ({ products, onImageProcessed }: ProductGridProps) =>
           canvas.height = img.height;
           console.log(`Canvas dimensions set: ${canvas.width}x${canvas.height}`);
           
-          // Apply background with proper handling of gradients, images and colors
           if (selectedColor.startsWith('linear-gradient')) {
-            // Apply gradient background
-            let gradientDirection = '0deg'; // Changed from const to let
-            let colorStops = ['#ffffff', '#e2e2e2']; // Default colors
+            let gradientDirection = '0deg';
+            let colorStops = ['#ffffff', '#e2e2e2'];
             
-            // Extract gradient details
             try {
               const gradientMatch = selectedColor.match(/linear-gradient\(([^)]+)\)/);
               if (gradientMatch && gradientMatch[1]) {
                 const parts = gradientMatch[1].split(',');
                 
-                // Check if first part contains direction
                 if (parts[0].includes('deg') || parts[0].includes('to ')) {
                   gradientDirection = parts[0].trim();
                   colorStops = parts.slice(1).map(part => part.trim());
@@ -294,7 +276,6 @@ export const ProductGrid = ({ products, onImageProcessed }: ProductGridProps) =>
               console.error('Error parsing gradient:', e);
             }
             
-            // Create gradient
             let gradient;
             if (gradientDirection.includes('to right')) {
               gradient = ctx.createLinearGradient(0, 0, canvas.width, 0);
@@ -305,11 +286,9 @@ export const ProductGrid = ({ products, onImageProcessed }: ProductGridProps) =>
             } else if (gradientDirection.includes('to top')) {
               gradient = ctx.createLinearGradient(0, canvas.height, 0, 0);
             } else {
-              // For any other angle, default to diagonal
               gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
             }
             
-            // Add color stops
             if (colorStops.length >= 2) {
               colorStops.forEach((color, index) => {
                 const offset = index / (colorStops.length - 1);
@@ -319,7 +298,6 @@ export const ProductGrid = ({ products, onImageProcessed }: ProductGridProps) =>
               gradient.addColorStop(0, colorStops[0]);
               gradient.addColorStop(1, colorStops[0]);
             } else {
-              // Fallback
               gradient.addColorStop(0, '#ffffff');
               gradient.addColorStop(1, '#e2e2e2');
             }
@@ -329,7 +307,6 @@ export const ProductGrid = ({ products, onImageProcessed }: ProductGridProps) =>
             console.log('Applied gradient background');
             
           } else if (selectedColor.startsWith('url')) {
-            // Handle background image
             try {
               const bgImg = new Image();
               bgImg.crossOrigin = "anonymous";
@@ -339,7 +316,6 @@ export const ProductGrid = ({ products, onImageProcessed }: ProductGridProps) =>
                 bgImg.src = selectedColor.slice(4, -1).replace(/["']/g, '');
               });
               
-              // Draw background image to fill canvas
               ctx.drawImage(bgImg, 0, 0, canvas.width, canvas.height);
               console.log('Applied image background');
             } catch (err) {
@@ -350,18 +326,15 @@ export const ProductGrid = ({ products, onImageProcessed }: ProductGridProps) =>
               console.log('Applied fallback background due to image error');
             }
           } else {
-            // Regular color with opacity
             const opacityHex = Math.round(opacity[0] * 2.55).toString(16).padStart(2, "0");
             ctx.fillStyle = `${selectedColor}${opacityHex}`;
             ctx.fillRect(0, 0, canvas.width, canvas.height);
             console.log(`Applied color background: ${selectedColor}${opacityHex}`);
           }
           
-          // Draw the image on top
           ctx.drawImage(img, 0, 0);
           console.log('Drew the transparent image on top of background');
           
-          // Convert to blob and add to zip
           const imageBlob = await new Promise<Blob | null>((resolve) => {
             try {
               canvas.toBlob((blob) => {
@@ -393,12 +366,9 @@ export const ProductGrid = ({ products, onImageProcessed }: ProductGridProps) =>
         }
       }
       
-      // Add CSV file to zip
       zip.file("product_images.csv", csvContent);
       console.log('Added CSV to zip with content length:', csvContent.length);
       
-      // Generate and download the zip
-      console.log('Generating ZIP archive...');
       const zipBlob = await zip.generateAsync({ 
         type: "blob",
         compression: "DEFLATE",

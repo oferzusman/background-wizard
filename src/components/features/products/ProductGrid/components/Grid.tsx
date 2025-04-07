@@ -17,7 +17,9 @@ interface GridProps {
     imageUrl: string,
     title: string,
     backgroundColor: string,
-    opacity: number
+    opacity: number,
+    topPadding?: number,
+    bottomPadding?: number
   ) => Promise<void>;
   onImageProcessed: (index: number, newImageUrl: string) => void;
   topPadding?: number;

@@ -8,7 +8,9 @@ export const handleBulkDownloadWithBackground = async (
   products: ProductData[],
   selectedColor: string,
   opacity: number[],
-  setIsDownloading: (value: boolean) => void
+  setIsDownloading: (value: boolean) => void,
+  topPadding = 40,
+  bottomPadding = 40
 ) => {
   if (selectedProducts.length === 0) {
     throw new Error("Please select products first");
@@ -64,7 +66,7 @@ export const handleBulkDownloadWithBackground = async (
           
           const canvas = document.createElement('canvas');
           canvas.width = img.width;
-          canvas.height = img.height;
+          canvas.height = img.height + topPadding + bottomPadding;
           const ctx = canvas.getContext('2d');
           
           if (!ctx) {
@@ -92,7 +94,8 @@ export const handleBulkDownloadWithBackground = async (
             applyBackgroundToCanvas(ctx, canvas.width, canvas.height, selectedColor, opacity[0]);
           }
           
-          ctx.drawImage(img, 0, 0);
+          // Draw the image with top padding
+          ctx.drawImage(img, 0, topPadding);
           
           const processedBlob = await new Promise<Blob>((resolve, reject) => {
             canvas.toBlob(blob => {

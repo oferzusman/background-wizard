@@ -23,7 +23,9 @@ interface ProductCardProps {
     imageUrl: string,
     title: string,
     backgroundColor: string,
-    opacity: number
+    opacity: number,
+    topPadding?: number,
+    bottomPadding?: number
   ) => Promise<void>;
   topPadding?: number;
   bottomPadding?: number;
@@ -109,6 +111,8 @@ export const ProductCard = ({
                 opacity={opacity}
                 handleDownloadOriginal={handleDownloadOriginal}
                 handleDownloadWithBackground={handleDownloadWithBackground}
+                topPadding={topPadding}
+                bottomPadding={bottomPadding}
               />
             </>
           )}

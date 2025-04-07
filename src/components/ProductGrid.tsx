@@ -87,9 +87,14 @@ export const ProductGrid = ({ products, onImageProcessed }: ProductGridProps) =>
       canvas.width = img.width;
       canvas.height = img.height;
 
-      ctx.fillStyle = backgroundColor + Math.round(opacity * 2.55).toString(16).padStart(2, '0');
+      // Convert opacity from percentage (0-100) to hex (00-FF)
+      const opacityHex = Math.round(opacity * 2.55).toString(16).padStart(2, '0');
+      
+      // Fill with background color including opacity
+      ctx.fillStyle = `${backgroundColor}${opacityHex}`;
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
+      // Draw the transparent image on top
       ctx.drawImage(img, 0, 0);
 
       canvas.toBlob((blob) => {

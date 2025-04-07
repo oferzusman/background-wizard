@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { ProductData } from "../FileUpload";
 import { ProductCard } from "../ProductCard";
@@ -208,7 +207,7 @@ export const ProductGrid = ({ products, onImageProcessed }: ProductGridProps) =>
       const JSZip = (await import('jszip')).default;
       const zip = new JSZip();
       
-      // Create images folder - ensure it exists
+      // Create images folder
       const imgFolder = zip.folder("images");
       if (!imgFolder) {
         throw new Error("Failed to create images folder in zip");
@@ -234,130 +233,18 @@ export const ProductGrid = ({ products, onImageProcessed }: ProductGridProps) =>
           
           csvContent += `${productId},"${product.title}",${filename}\n`;
           
-          const canvas = document.createElement('canvas');
-          const ctx = canvas.getContext('2d');
-          if (!ctx) {
-            console.error(`Could not get canvas context for product at index ${index}`);
-            continue;
+          // Create image blob from URL
+          const response = await fetch(product.processedImageUrl);
+          if (!response.ok) {
+            throw new Error(`Failed to fetch image: ${response.status} ${response.statusText}`);
           }
           
-          const img = new Image();
-          img.crossOrigin = "anonymous";
+          // Get the image as a blob directly from the response
+          const imageBlob = await response.blob();
+          console.log(`Successfully fetched image blob, size: ${imageBlob.size} bytes`);
           
-          await new Promise((resolve, reject) => {
-            img.onload = () => {
-              console.log(`Image loaded successfully: ${product.processedImageUrl}`);
-              resolve(null);
-            };
-            img.onerror = (err) => {
-              console.error(`Image load error for ${product.processedImageUrl}:`, err);
-              reject(err);
-            };
-            img.src = product.processedImageUrl!;
-            console.log(`Loading image from: ${product.processedImageUrl}`);
-          });
-          
-          canvas.width = img.width;
-          canvas.height = img.height;
-          console.log(`Canvas dimensions set: ${canvas.width}x${canvas.height}`);
-          
-          // Applying background
-          if (selectedColor.startsWith('linear-gradient')) {
-            let gradientDirection = '0deg';
-            let colorStops = ['#ffffff', '#e2e2e2'];
-            
-            try {
-              const gradientMatch = selectedColor.match(/linear-gradient\(([^)]+)\)/);
-              if (gradientMatch && gradientMatch[1]) {
-                const parts = gradientMatch[1].split(',');
-                
-                if (parts[0].includes('deg') || parts[0].includes('to ')) {
-                  gradientDirection = parts[0].trim();
-                  colorStops = parts.slice(1).map(part => part.trim());
-                } else {
-                  colorStops = parts.map(part => part.trim());
-                }
-              }
-              console.log(`Parsed gradient - Direction: ${gradientDirection}, Colors:`, colorStops);
-            } catch (e) {
-              console.error('Error parsing gradient:', e);
-            }
-            
-            let gradient;
-            if (gradientDirection.includes('to right')) {
-              gradient = ctx.createLinearGradient(0, 0, canvas.width, 0);
-            } else if (gradientDirection.includes('to bottom') || gradientDirection.includes('180deg')) {
-              gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
-            } else if (gradientDirection.includes('to left')) {
-              gradient = ctx.createLinearGradient(canvas.width, 0, 0, 0);
-            } else if (gradientDirection.includes('to top')) {
-              gradient = ctx.createLinearGradient(0, canvas.height, 0, 0);
-            } else {
-              gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
-            }
-            
-            if (colorStops.length >= 2) {
-              colorStops.forEach((color, index) => {
-                const cleanColor = color.split(' ')[0].trim();
-                const offset = index / (colorStops.length - 1);
-                gradient.addColorStop(offset, cleanColor);
-              });
-            } else if (colorStops.length === 1) {
-              const cleanColor = colorStops[0].split(' ')[0].trim();
-              gradient.addColorStop(0, cleanColor);
-              gradient.addColorStop(1, cleanColor);
-            } else {
-              gradient.addColorStop(0, '#ffffff');
-              gradient.addColorStop(1, '#e2e2e2');
-            }
-            
-            ctx.fillStyle = gradient;
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-            console.log('Applied gradient background');
-            
-          } else if (selectedColor.startsWith('url')) {
-            try {
-              const bgImg = new Image();
-              bgImg.crossOrigin = "anonymous";
-              await new Promise((resolve, reject) => {
-                bgImg.onload = resolve;
-                bgImg.onerror = reject;
-                bgImg.src = selectedColor.slice(4, -1).replace(/["']/g, '');
-              });
-              
-              ctx.drawImage(bgImg, 0, 0, canvas.width, canvas.height);
-              console.log('Applied image background');
-            } catch (err) {
-              console.error('Error applying background image:', err);
-              const opacityHex = Math.round(opacity[0] * 2.55).toString(16).padStart(2, "0");
-              ctx.fillStyle = `#ffffff${opacityHex}`;
-              ctx.fillRect(0, 0, canvas.width, canvas.height);
-              console.log('Applied fallback background due to image error');
-            }
-          } else {
-            const opacityHex = Math.round(opacity[0] * 2.55).toString(16).padStart(2, "0");
-            ctx.fillStyle = `${selectedColor}${opacityHex}`;
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-            console.log(`Applied color background: ${selectedColor}${opacityHex}`);
-          }
-          
-          // Draw the transparent image on top of background
-          ctx.drawImage(img, 0, 0);
-          console.log('Drew the transparent image on top of background');
-          
-          // Create blob from canvas and add to zip
-          // Using a higher quality setting for the blob
-          const blob = await new Promise<Blob | null>((resolve) => {
-            canvas.toBlob(resolve, 'image/png', 1.0);
-          });
-          
-          if (!blob) {
-            console.error(`Failed to create blob for ${filename}`);
-            throw new Error(`Failed to create image blob for ${filename}`);
-          }
-          
-          console.log(`Successfully created blob for ${filename}, size: ${blob.size} bytes`);
-          imgFolder.file(filename, blob);
+          // Add the image blob directly to the ZIP
+          imgFolder.file(filename, imageBlob);
           console.log(`Added ${filename} to zip folder`);
           successCount++;
         } catch (error) {

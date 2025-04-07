@@ -6,7 +6,7 @@ import { supabase } from "@/lib/supabase/client";
 import { ProductSidebar } from "../ProductSidebar";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
-import { Eraser } from "lucide-react";
+import { Download, Eraser, FileDown } from "lucide-react";
 
 interface ProductGridProps {
   products: ProductData[];
@@ -20,6 +20,7 @@ export const ProductGrid = ({ products, onImageProcessed }: ProductGridProps) =>
   const [selectedProducts, setSelectedProducts] = useState<number[]>([]);
   const [filters, setFilters] = useState<Record<string, string>>({});
   const [isBulkProcessing, setIsBulkProcessing] = useState(false);
+  const [isDownloading, setIsDownloading] = useState(false);
 
   const handleRemoveBackground = async (index: number) => {
     setProcessingIndex(index);
@@ -167,6 +168,97 @@ export const ProductGrid = ({ products, onImageProcessed }: ProductGridProps) =>
     }
   };
 
+  const handleBulkDownloadWithBackground = async () => {
+    if (selectedProducts.length === 0) {
+      toast.error("Please select products first");
+      return;
+    }
+
+    setIsDownloading(true);
+    let successCount = 0;
+    let errorCount = 0;
+    
+    try {
+      const JSZip = (await import('jszip')).default;
+      const zip = new JSZip();
+      const imgFolder = zip.folder("images");
+      
+      let csvContent = "product_id,title,filename\n";
+      
+      for (const index of selectedProducts) {
+        try {
+          const product = products[index];
+          if (!product.processedImageUrl) continue;
+          
+          const filename = `${product.id || index}-${product.title.replace(/[^a-z0-9]/gi, '_')}.png`;
+          
+          csvContent += `${product.id || index},"${product.title}",${filename}\n`;
+          
+          const canvas = document.createElement('canvas');
+          const ctx = canvas.getContext('2d');
+          if (!ctx) continue;
+          
+          const img = new Image();
+          img.crossOrigin = "anonymous";
+          
+          await new Promise((resolve, reject) => {
+            img.onload = resolve;
+            img.onerror = reject;
+            img.src = product.processedImageUrl!;
+          });
+          
+          canvas.width = img.width;
+          canvas.height = img.height;
+          
+          const opacityHex = Math.round(opacity[0] * 2.55).toString(16).padStart(2, '0');
+          
+          if (selectedColor.startsWith('linear-gradient')) {
+            const gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+            gradient.addColorStop(0, '#ffffff');
+            gradient.addColorStop(1, '#e2e2e2');
+            ctx.fillStyle = gradient;
+          } else if (selectedColor.startsWith('url')) {
+            ctx.fillStyle = `#ffffff${opacityHex}`;
+          } else {
+            ctx.fillStyle = `${selectedColor}${opacityHex}`;
+          }
+          
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+          
+          ctx.drawImage(img, 0, 0);
+          
+          const imageBlob = await new Promise<Blob>((resolve) => 
+            canvas.toBlob((blob) => resolve(blob!), 'image/png')
+          );
+          
+          imgFolder?.file(filename, imageBlob);
+          successCount++;
+        } catch (error) {
+          console.error(`Error processing image at index ${index}:`, error);
+          errorCount++;
+        }
+      }
+      
+      zip.file("product_images.csv", csvContent);
+      
+      const zipBlob = await zip.generateAsync({ type: "blob" });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(zipBlob);
+      link.download = "product_images.zip";
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(link.href);
+      
+      toast.success(`Downloaded ${successCount} images with CSV data`);
+    } catch (error) {
+      console.error('Error creating bulk download:', error);
+      toast.error('Failed to create bulk download');
+    } finally {
+      setIsDownloading(false);
+    }
+  };
+
   const handleSelectAll = (selected: boolean) => {
     setSelectedProducts(selected ? products.map((_, index) => index) : []);
   };
@@ -232,6 +324,15 @@ export const ProductGrid = ({ products, onImageProcessed }: ProductGridProps) =>
                   >
                     <Eraser className="w-4 h-4 mr-2 text-red-500 group-hover:text-red-600" />
                     Clear Background ({selectedProducts.length})
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={handleBulkDownloadWithBackground}
+                    disabled={isDownloading}
+                    className="group"
+                  >
+                    <FileDown className="w-4 h-4 mr-2 text-slate-500 group-hover:text-violet-600" />
+                    {isDownloading ? 'Creating Archive...' : `Download All (${selectedProducts.length})`}
                   </Button>
                 </div>
               )}

@@ -23,6 +23,7 @@ interface HistoryEntry {
 export const FileHistory = ({ onDataParsed }: FileHistoryProps) => {
   const [history, setHistory] = useState<HistoryEntry[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [loadingId, setLoadingId] = useState<string | null>(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -64,6 +65,7 @@ export const FileHistory = ({ onDataParsed }: FileHistoryProps) => {
 
   const handleReload = async (entry: HistoryEntry) => {
     setIsLoading(true);
+    setLoadingId(entry.id);
     console.log("Reloading entry:", entry);
 
     try {
@@ -77,15 +79,41 @@ export const FileHistory = ({ onDataParsed }: FileHistoryProps) => {
         const content = await response.text();
         console.log(`Fetched content for ${entry.file_type} file, length: ${content.length}`);
         
-        // Ensure we're using the correct file type for parsing
+        // Normalize file type to lowercase and handle special cases
         const fileType = entry.file_type.toLowerCase();
         console.log("Using file type for parsing:", fileType);
         
-        const parsedData = await parseFileContent(content, fileType);
-        console.log("Successfully parsed data:", parsedData.length, "items");
-        
-        onDataParsed(parsedData);
-        toast.success(`Successfully loaded ${parsedData.length} products!`);
+        // Special handling for TSV/CSV files
+        if (fileType === 'csv' || fileType === 'tsv') {
+          try {
+            const parsedData = await parseFileContent(content, fileType);
+            console.log("Successfully parsed data:", parsedData.length, "items");
+            
+            if (parsedData.length === 0) {
+              throw new Error("No products found in the file");
+            }
+            
+            onDataParsed(parsedData);
+            toast.success(`Successfully loaded ${parsedData.length} products!`);
+          } catch (parseError) {
+            console.error("Error parsing file content:", parseError);
+            toast.error(`Error parsing ${fileType.toUpperCase()} file. Please check the file format.`);
+          }
+        } else if (fileType === 'json') {
+          try {
+            const jsonData = JSON.parse(content);
+            const parsedData = Array.isArray(jsonData) ? jsonData : [jsonData];
+            console.log("Successfully parsed JSON data:", parsedData.length, "items");
+            
+            onDataParsed(parsedData);
+            toast.success(`Successfully loaded ${parsedData.length} products!`);
+          } catch (parseError) {
+            console.error("Error parsing JSON content:", parseError);
+            toast.error("Invalid JSON format");
+          }
+        } else {
+          throw new Error(`Unsupported file type: ${fileType}`);
+        }
       } else {
         throw new Error("No file URL available");
       }
@@ -94,6 +122,7 @@ export const FileHistory = ({ onDataParsed }: FileHistoryProps) => {
       toast.error(error instanceof Error ? error.message : "Error processing file");
     } finally {
       setIsLoading(false);
+      setLoadingId(null);
     }
   };
 
@@ -116,13 +145,16 @@ export const FileHistory = ({ onDataParsed }: FileHistoryProps) => {
                 <p className="text-sm text-gray-500">
                   {new Date(entry.uploaded_at).toLocaleString()}
                 </p>
+                <p className="text-xs text-gray-400">
+                  Type: {entry.file_type.toUpperCase()}
+                </p>
               </div>
               <Button
                 variant="outline"
                 onClick={() => handleReload(entry)}
                 disabled={isLoading}
               >
-                {isLoading ? "Loading..." : "Reload"}
+                {loadingId === entry.id ? "Loading..." : "Reload"}
               </Button>
             </div>
           ))}

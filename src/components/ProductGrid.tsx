@@ -173,22 +173,23 @@ export const ProductGrid = ({ products, onImageProcessed }: ProductGridProps) =>
         filteredCount={filteredProducts.length}
       />
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 p-4">
         {filteredProducts.map((product, index) => (
-          <ProductCard
-            key={index}
-            product={product}
-            index={index}
-            onImageProcessed={onImageProcessed}
-            onSelect={handleSelectProduct}
-            isSelected={selectedProducts.includes(index)}
-            processingIndex={processingIndex}
-            selectedColor={selectedColor}
-            opacity={opacity[0]}
-            handleRemoveBackground={handleRemoveBackground}
-            handleDownloadOriginal={handleDownloadOriginal}
-            handleDownloadWithBackground={handleDownloadWithBackground}
-          />
+          <div key={index} className="p-2">
+            <ProductCard
+              product={product}
+              index={index}
+              onImageProcessed={onImageProcessed}
+              onSelect={handleSelectProduct}
+              isSelected={selectedProducts.includes(index)}
+              processingIndex={processingIndex}
+              selectedColor={selectedColor}
+              opacity={opacity[0]}
+              handleRemoveBackground={handleRemoveBackground}
+              handleDownloadOriginal={handleDownloadOriginal}
+              handleDownloadWithBackground={handleDownloadWithBackground}
+            />
+          </div>
         ))}
       </div>
     </div>

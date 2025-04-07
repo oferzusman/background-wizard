@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { ProductData } from "./FileUpload";
 import { Button } from "@/components/ui/button";
@@ -66,12 +67,14 @@ export const ProductCard = ({
       initial={{ opacity: 0, scale: 0.95 }}
       animate={{ opacity: 1, scale: 1 }}
       transition={{ duration: 0.3, delay: index * 0.05 }}
-      className={`bg-white rounded-xl shadow-sm overflow-hidden border transition-all duration-200 ${
-        isSelected ? "border-violet-400 ring-2 ring-violet-100" : "border-transparent hover:border-slate-200"
-      }`}
+      className="bg-white rounded-xl shadow-sm overflow-hidden border transition-all duration-200 h-full flex flex-col"
+      style={{
+        borderColor: isSelected ? "rgb(167, 139, 250)" : "transparent",
+        boxShadow: isSelected ? "0 0 0 2px rgb(237, 233, 254)" : "",
+      }}
     >
       <div className="relative">
-        <AspectRatio ratio={1} topMargin={40} bottomMargin={40}>
+        <AspectRatio ratio={1}>
           <div className="absolute top-3 left-3 z-10">
             <Checkbox
               checked={isSelected}
@@ -112,7 +115,7 @@ export const ProductCard = ({
         </AspectRatio>
       </div>
 
-      <div className="p-4 space-y-3">
+      <div className="p-4 space-y-3 flex-grow">
         <h3 className="font-medium text-slate-900 text-center truncate">
           {product.title}
         </h3>
@@ -123,7 +126,7 @@ export const ProductCard = ({
           <p className="text-sm text-slate-500 text-center">ID: {product.id}</p>
         )}
 
-        <div className="flex gap-2 justify-center">
+        <div className="flex gap-2 justify-center mt-auto pt-3">
           <Button
             variant="outline"
             size="sm"

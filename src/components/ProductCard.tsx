@@ -1,8 +1,10 @@
+
 import { useState } from "react";
 import { ProductData } from "./FileUpload";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { motion } from "framer-motion";
+import { AspectRatio } from "@/components/ui/aspect-ratio";
 import {
   Dialog,
   DialogContent,
@@ -53,48 +55,50 @@ export const ProductCard = ({
         isSelected ? "border-violet-400 ring-2 ring-violet-100" : "border-transparent hover:border-slate-200"
       }`}
     >
-      <div className="relative aspect-square group">
-        <div className="absolute top-3 left-3 z-10">
-          <Checkbox
-            checked={isSelected}
-            onCheckedChange={(checked) => onSelect(index, checked as boolean)}
-            className="data-[state=checked]:bg-violet-600 data-[state=checked]:border-violet-600"
-          />
-        </div>
-        {product.processedImageUrl && (
-          <div className="absolute top-3 right-3 z-10">
-            <div className="bg-green-100 p-1.5 rounded-full">
-              <Eraser className="w-4 h-4 text-green-600" />
-            </div>
-          </div>
-        )}
-        {product.processedImageUrl ? (
-          <div
-            className="w-full h-full relative"
-            style={{
-              backgroundColor: `${selectedColor}${Math.round(opacity[0] * 2.55)
-                .toString(16)
-                .padStart(2, "0")}`,
-            }}
-          >
-            <img
-              src={product.processedImageUrl}
-              alt={product.title}
-              className="w-full h-full object-contain p-4 absolute inset-0 transition-transform duration-300 group-hover:scale-105"
+      <div className="relative">
+        <AspectRatio ratio={1} topMargin={40} bottomMargin={40}>
+          <div className="absolute top-3 left-3 z-10">
+            <Checkbox
+              checked={isSelected}
+              onCheckedChange={(checked) => onSelect(index, checked as boolean)}
+              className="data-[state=checked]:bg-violet-600 data-[state=checked]:border-violet-600"
             />
           </div>
-        ) : (
-          <img
-            src={product["image link"]}
-            alt={product.title}
-            className="w-full h-full object-contain p-4 transition-transform duration-300 group-hover:scale-105"
-          />
-        )}
-        {processingIndex === index && (
-          <div className="absolute inset-0 bg-white/80 backdrop-blur-sm flex items-center justify-center">
-            <div className="w-16 h-16 border-4 border-violet-200 border-t-violet-600 rounded-full animate-spin" />
-          </div>
-        )}
+          {product.processedImageUrl && (
+            <div className="absolute top-3 right-3 z-10">
+              <div className="bg-green-100 p-1.5 rounded-full">
+                <Eraser className="w-4 h-4 text-green-600" />
+              </div>
+            </div>
+          )}
+          {product.processedImageUrl ? (
+            <div
+              className="w-full h-full relative"
+              style={{
+                backgroundColor: `${selectedColor}${Math.round(opacity[0] * 2.55)
+                  .toString(16)
+                  .padStart(2, "0")}`,
+              }}
+            >
+              <img
+                src={product.processedImageUrl}
+                alt={product.title}
+                className="w-full h-full object-contain p-4 absolute inset-0 transition-transform duration-300 group-hover:scale-105"
+              />
+            </div>
+          ) : (
+            <img
+              src={product["image link"]}
+              alt={product.title}
+              className="w-full h-full object-contain p-4 transition-transform duration-300 group-hover:scale-105"
+            />
+          )}
+          {processingIndex === index && (
+            <div className="absolute inset-0 bg-white/80 backdrop-blur-sm flex items-center justify-center">
+              <div className="w-16 h-16 border-4 border-violet-200 border-t-violet-600 rounded-full animate-spin" />
+            </div>
+          )}
+        </AspectRatio>
       </div>
 
       <div className="p-4 space-y-3">

@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { ProductData } from "../FileUpload";
 import { ProductCard } from "../ProductCard";
@@ -206,8 +207,9 @@ export const ProductGrid = ({ products, onImageProcessed }: ProductGridProps) =>
       console.log('Starting bulk download process');
       const JSZip = (await import('jszip')).default;
       const zip = new JSZip();
-      const imgFolder = zip.folder("images");
       
+      // Create images folder - ensure it exists
+      const imgFolder = zip.folder("images");
       if (!imgFolder) {
         throw new Error("Failed to create images folder in zip");
       }
@@ -259,6 +261,7 @@ export const ProductGrid = ({ products, onImageProcessed }: ProductGridProps) =>
           canvas.height = img.height;
           console.log(`Canvas dimensions set: ${canvas.width}x${canvas.height}`);
           
+          // Applying background
           if (selectedColor.startsWith('linear-gradient')) {
             let gradientDirection = '0deg';
             let colorStops = ['#ffffff', '#e2e2e2'];
@@ -338,11 +341,14 @@ export const ProductGrid = ({ products, onImageProcessed }: ProductGridProps) =>
             console.log(`Applied color background: ${selectedColor}${opacityHex}`);
           }
           
+          // Draw the transparent image on top of background
           ctx.drawImage(img, 0, 0);
           console.log('Drew the transparent image on top of background');
           
+          // Create blob from canvas and add to zip
+          // Using a higher quality setting for the blob
           const blob = await new Promise<Blob | null>((resolve) => {
-            canvas.toBlob((b) => resolve(b), 'image/png', 1.0);
+            canvas.toBlob(resolve, 'image/png', 1.0);
           });
           
           if (!blob) {
@@ -360,9 +366,11 @@ export const ProductGrid = ({ products, onImageProcessed }: ProductGridProps) =>
         }
       }
       
+      // Add CSV file with product info
       zip.file("product_images.csv", csvContent);
       console.log('Added CSV to zip with content length:', csvContent.length);
       
+      // Generate and download the zip file
       const zipBlob = await zip.generateAsync({ 
         type: "blob",
         compression: "DEFLATE",

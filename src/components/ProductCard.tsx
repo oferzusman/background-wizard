@@ -22,7 +22,7 @@ interface ProductCardProps {
   isSelected: boolean;
   processingIndex: number | null;
   selectedColor: string;
-  opacity: number[];
+  opacity: number;
   handleRemoveBackground: (index: number) => Promise<void>;
   handleDownloadOriginal: (imageUrl: string, title: string) => void;
   handleDownloadWithBackground: (
@@ -75,7 +75,7 @@ export const ProductCard = ({
             <div
               className="w-full h-full relative"
               style={{
-                backgroundColor: `${selectedColor}${Math.round(opacity[0] * 2.55)
+                backgroundColor: `${selectedColor}${Math.round(opacity * 2.55)
                   .toString(16)
                   .padStart(2, "0")}`,
               }}
@@ -152,7 +152,7 @@ export const ProductCard = ({
                         product.processedImageUrl!,
                         product.title,
                         selectedColor,
-                        opacity[0]
+                        opacity
                       )
                     }
                     variant="default"

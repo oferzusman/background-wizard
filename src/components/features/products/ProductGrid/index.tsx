@@ -1,11 +1,12 @@
 
 import { toast } from "sonner";
 import { ProductData } from "../FileUpload";
-import { ProductCard } from "../ProductCard";
 import { ProductSidebar } from "../ProductSidebar";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { useProductManagement } from "../hooks/useProductManagement";
 import { BulkActions } from "../components/BulkActions";
+import { Grid } from "./components/Grid";
+import { SelectionControls } from "./components/SelectionControls";
 import { 
   handleDownloadOriginal, 
   handleDownloadWithBackground,
@@ -84,14 +85,11 @@ export const ProductGrid = ({ products, onImageProcessed }: ProductGridProps) =>
         <div className="flex-1 p-6">
           <div className="space-y-6">
             <div className="flex justify-between items-center">
-              <button
-                onClick={() => handleSelectAll(selectedProducts.length !== products.length)}
-                className="px-4 py-2 text-sm font-medium text-slate-600 hover:text-slate-900 bg-white/50 hover:bg-white/80 rounded-lg transition-colors"
-              >
-                {selectedProducts.length === products.length
-                  ? "Deselect All"
-                  : "Select All"}
-              </button>
+              <SelectionControls 
+                selectedProductsCount={selectedProducts.length}
+                totalProductsCount={products.length}
+                onSelectAll={handleSelectAll}
+              />
 
               <BulkActions
                 selectedProductsCount={selectedProducts.length}
@@ -103,25 +101,19 @@ export const ProductGrid = ({ products, onImageProcessed }: ProductGridProps) =>
               />
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-              {filteredProducts.map((product, index) => (
-                <ProductCard
-                  key={index}
-                  product={product}
-                  index={index}
-                  onImageProcessed={onImageProcessed}
-                  onSelect={handleSelectProduct}
-                  isSelected={selectedProducts.includes(index)}
-                  processingIndex={processingIndex}
-                  selectedColor={selectedColor}
-                  opacity={opacity[0]}
-                  handleRemoveBackground={handleRemoveBackground}
-                  handleClearBackground={handleClearBackground}
-                  handleDownloadOriginal={handleDownloadOriginal}
-                  handleDownloadWithBackground={handleDownloadWithBackground}
-                />
-              ))}
-            </div>
+            <Grid 
+              filteredProducts={filteredProducts}
+              processingIndex={processingIndex}
+              selectedColor={selectedColor}
+              opacity={opacity[0]}
+              selectedProducts={selectedProducts}
+              handleSelectProduct={handleSelectProduct}
+              handleRemoveBackground={handleRemoveBackground}
+              handleClearBackground={handleClearBackground}
+              handleDownloadOriginal={handleDownloadOriginal}
+              handleDownloadWithBackground={handleDownloadWithBackground}
+              onImageProcessed={onImageProcessed}
+            />
           </div>
         </div>
       </div>

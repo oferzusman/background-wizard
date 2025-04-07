@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { ProductData } from "../FileUpload";
 import { ProductCard } from "../ProductCard";
@@ -204,6 +205,7 @@ export const ProductGrid = ({ products, onImageProcessed }: ProductGridProps) =>
     
     try {
       console.log('Starting bulk download process');
+      // Dynamically import JSZip only when needed
       const JSZip = (await import('jszip')).default;
       const zip = new JSZip();
       
@@ -231,24 +233,30 @@ export const ProductGrid = ({ products, onImageProcessed }: ProductGridProps) =>
           const filename = `${productId}.png`;
           console.log(`Generated filename: ${filename}`);
           
-          csvContent += `${productId},"${product.title}",${filename}\n`;
+          csvContent += `${productId},"${product.title}",images/${filename}\n`;
           
-          // Create image blob from URL
-          const response = await fetch(product.processedImageUrl);
-          if (!response.ok) {
-            throw new Error(`Failed to fetch image: ${response.status} ${response.statusText}`);
+          // Create image with background
+          try {
+            // Fetch the image directly from the URL
+            const response = await fetch(product.processedImageUrl);
+            if (!response.ok) {
+              throw new Error(`Failed to fetch image: ${response.statusText}`);
+            }
+            
+            // Get the image as blob
+            const imageBlob = await response.blob();
+            console.log(`Successfully fetched image, size: ${imageBlob.size} bytes`);
+            
+            // Add the image blob to the zip
+            imgFolder.file(filename, imageBlob);
+            console.log(`Added ${filename} to zip folder`);
+            successCount++;
+          } catch (error) {
+            console.error(`Error processing image at index ${index}:`, error);
+            errorCount++;
           }
-          
-          // Get the image as a blob directly from the response
-          const imageBlob = await response.blob();
-          console.log(`Successfully fetched image blob, size: ${imageBlob.size} bytes`);
-          
-          // Add the image blob directly to the ZIP
-          imgFolder.file(filename, imageBlob);
-          console.log(`Added ${filename} to zip folder`);
-          successCount++;
         } catch (error) {
-          console.error(`Error processing image at index ${index}:`, error);
+          console.error(`Error processing product at index ${index}:`, error);
           errorCount++;
         }
       }
@@ -258,32 +266,41 @@ export const ProductGrid = ({ products, onImageProcessed }: ProductGridProps) =>
       console.log('Added CSV to zip with content length:', csvContent.length);
       
       // Generate and download the zip file
-      const zipBlob = await zip.generateAsync({ 
-        type: "blob",
-        compression: "DEFLATE",
-        compressionOptions: {
-          level: 6
+      try {
+        const zipBlob = await zip.generateAsync({ 
+          type: "blob",
+          compression: "DEFLATE",
+          compressionOptions: {
+            level: 6
+          }
+        });
+        console.log(`Generated ZIP blob of size: ${zipBlob.size} bytes`);
+        
+        if (zipBlob.size === 0) {
+          throw new Error("Generated ZIP file is empty");
         }
-      });
-      console.log(`Generated ZIP blob of size: ${zipBlob.size} bytes`);
-      
-      const link = document.createElement('a');
-      link.href = URL.createObjectURL(zipBlob);
-      link.download = "product_images.zip";
-      document.body.appendChild(link);
-      console.log('Starting download...');
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(link.href);
-      
-      if (successCount > 0) {
-        toast.success(`Downloaded ${successCount} images with CSV data`);
-      } else {
-        toast.warning('No images were included in the download');
+        
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(zipBlob);
+        link.download = "product_images.zip";
+        document.body.appendChild(link);
+        console.log('Starting download...');
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(link.href);
+        
+        if (successCount > 0) {
+          toast.success(`Downloaded ${successCount} images with CSV data`);
+        } else {
+          toast.warning('No images were included in the download');
+        }
+      } catch (error) {
+        console.error('Error generating or downloading ZIP:', error);
+        throw error;
       }
     } catch (error) {
       console.error('Error creating bulk download:', error);
-      toast.error('Failed to create bulk download');
+      toast.error(`Failed to create bulk download: ${error.message}`);
     } finally {
       setIsDownloading(false);
     }

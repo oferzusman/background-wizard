@@ -1,18 +1,11 @@
 
-import { useState } from "react";
-import { ProductData } from "../FileUpload";
+import React from "react";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
 import { motion } from "framer-motion";
-import { AspectRatio } from "@/components/ui/aspect-ratio";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import { Download, Eraser, Image } from "lucide-react";
+import { Eraser } from "lucide-react";
+import { ProductData } from "@/types/product.types";
+import { ProductImage } from "./components/ProductImage";
+import { DownloadOptions } from "./components/DownloadOptions";
 
 interface ProductCardProps {
   product: ProductData;
@@ -48,23 +41,6 @@ export const ProductCard = ({
   handleDownloadOriginal,
   handleDownloadWithBackground,
 }: ProductCardProps) => {
-  // Calculate background style based on the selectedColor type
-  const getBackgroundStyle = () => {
-    if (selectedColor.startsWith('linear-gradient')) {
-      return { background: selectedColor };
-    } else if (selectedColor.startsWith('url')) {
-      return {
-        backgroundImage: selectedColor,
-        backgroundSize: 'cover',
-        backgroundPosition: 'center'
-      };
-    } else {
-      // Regular color with opacity
-      const opacityHex = Math.round(opacity * 2.55).toString(16).padStart(2, "0");
-      return { backgroundColor: `${selectedColor}${opacityHex}` };
-    }
-  };
-
   return (
     <motion.div
       initial={{ opacity: 0, scale: 0.95 }}
@@ -74,47 +50,16 @@ export const ProductCard = ({
         isSelected ? "border-violet-400 ring-2 ring-violet-100" : "border-transparent hover:border-slate-200"
       }`}
     >
-      <div className="relative">
-        <AspectRatio ratio={1} topMargin={40} bottomMargin={40}>
-          <div className="absolute top-3 left-3 z-10">
-            <Checkbox
-              checked={isSelected}
-              onCheckedChange={(checked) => onSelect(index, checked as boolean)}
-              className="data-[state=checked]:bg-violet-600 data-[state=checked]:border-violet-600"
-            />
-          </div>
-          {product.processedImageUrl && (
-            <div className="absolute top-3 right-3 z-10">
-              <div className="bg-green-100 p-1.5 rounded-full">
-                <Eraser className="w-4 h-4 text-green-600" />
-              </div>
-            </div>
-          )}
-          {product.processedImageUrl ? (
-            <div
-              className="w-full h-full relative"
-              style={getBackgroundStyle()}
-            >
-              <img
-                src={product.processedImageUrl}
-                alt={product.title}
-                className="w-full h-full object-contain p-4 absolute inset-0 transition-transform duration-300 group-hover:scale-105"
-              />
-            </div>
-          ) : (
-            <img
-              src={product["image link"]}
-              alt={product.title}
-              className="w-full h-full object-contain p-4 transition-transform duration-300 group-hover:scale-105"
-            />
-          )}
-          {processingIndex === index && (
-            <div className="absolute inset-0 bg-white/80 backdrop-blur-sm flex items-center justify-center">
-              <div className="w-16 h-16 border-4 border-violet-200 border-t-violet-600 rounded-full animate-spin" />
-            </div>
-          )}
-        </AspectRatio>
-      </div>
+      <ProductImage 
+        imageUrl={product["image link"]}
+        processedImageUrl={product.processedImageUrl}
+        isSelected={isSelected}
+        onSelect={(selected) => onSelect(index, selected)}
+        selectedColor={selectedColor}
+        opacity={opacity}
+        processingIndex={processingIndex}
+        currentIndex={index}
+      />
 
       <div className="p-4 space-y-3">
         <h3 className="font-medium text-slate-900 text-center truncate">
@@ -151,46 +96,14 @@ export const ProductCard = ({
                 Clear
               </Button>
               
-              <Dialog>
-                <DialogTrigger asChild>
-                  <Button variant="outline" size="sm" className="group">
-                    <Download className="w-4 h-4 mr-2 text-slate-500 group-hover:text-violet-600" />
-                    Download
-                  </Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>Choose Download Option</DialogTitle>
-                  </DialogHeader>
-                  <div className="flex flex-col gap-4 pt-4">
-                    <Button
-                      onClick={() =>
-                        handleDownloadOriginal(product.processedImageUrl!, product.title)
-                      }
-                      variant="outline"
-                      className="group"
-                    >
-                      <Image className="w-4 h-4 mr-2 text-slate-500 group-hover:text-violet-600" />
-                      Download with Transparent Background
-                    </Button>
-                    <Button
-                      onClick={() =>
-                        handleDownloadWithBackground(
-                          product.processedImageUrl!,
-                          product.title,
-                          selectedColor,
-                          opacity
-                        )
-                      }
-                      variant="default"
-                      className="bg-violet-600 hover:bg-violet-700"
-                    >
-                      <Image className="w-4 h-4 mr-2" />
-                      Download with Custom Background
-                    </Button>
-                  </div>
-                </DialogContent>
-              </Dialog>
+              <DownloadOptions 
+                processedImageUrl={product.processedImageUrl}
+                title={product.title}
+                selectedColor={selectedColor}
+                opacity={opacity}
+                handleDownloadOriginal={handleDownloadOriginal}
+                handleDownloadWithBackground={handleDownloadWithBackground}
+              />
             </>
           )}
         </div>

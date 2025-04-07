@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { ProductData } from "../FileUpload";
 import { Button } from "@/components/ui/button";
@@ -10,7 +11,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Download, Eraser, Image, XCircle } from "lucide-react";
+import { Download, Eraser, Image } from "lucide-react";
 
 interface ProductCardProps {
   product: ProductData;
@@ -46,26 +47,6 @@ export const ProductCard = ({
   handleDownloadOriginal,
   handleDownloadWithBackground,
 }: ProductCardProps) => {
-  const getBackgroundStyle = () => {
-    const opacityHex = Math.round(opacity * 2.55).toString(16).padStart(2, "0");
-    
-    if (selectedColor.startsWith('linear-gradient')) {
-      return {
-        background: selectedColor,
-      };
-    } else if (selectedColor.startsWith('url')) {
-      return {
-        backgroundImage: selectedColor,
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-      };
-    } else {
-      return {
-        backgroundColor: `${selectedColor}${opacityHex}`,
-      };
-    }
-  };
-
   return (
     <motion.div
       initial={{ opacity: 0, scale: 0.95 }}
@@ -84,13 +65,7 @@ export const ProductCard = ({
           />
         </div>
         {product.processedImageUrl && (
-          <div className="absolute top-3 right-3 z-10 flex gap-2">
-            <button
-              onClick={() => handleClearBackground(index)}
-              className="bg-red-100 p-1.5 rounded-full hover:bg-red-200 transition-colors"
-            >
-              <XCircle className="w-4 h-4 text-red-600" />
-            </button>
+          <div className="absolute top-3 right-3 z-10">
             <div className="bg-green-100 p-1.5 rounded-full">
               <Eraser className="w-4 h-4 text-green-600" />
             </div>
@@ -99,7 +74,14 @@ export const ProductCard = ({
         {product.processedImageUrl ? (
           <div
             className="w-full h-full relative"
-            style={getBackgroundStyle()}
+            style={{
+              backgroundColor: selectedColor.startsWith('url') 
+                ? 'transparent' 
+                : `${selectedColor}${Math.round(opacity * 2.55).toString(16).padStart(2, "0")}`,
+              backgroundImage: selectedColor.startsWith('url') ? selectedColor : 'none',
+              backgroundSize: 'cover',
+              backgroundPosition: 'center'
+            }}
           >
             <img
               src={product.processedImageUrl}
@@ -143,47 +125,60 @@ export const ProductCard = ({
             <Eraser className="w-4 h-4 mr-2 text-slate-500 group-hover:text-violet-600" />
             Remove Background
           </Button>
+          
           {product.processedImageUrl && (
-            <Dialog>
-              <DialogTrigger asChild>
-                <Button variant="outline" size="sm" className="group">
-                  <Download className="w-4 h-4 mr-2 text-slate-500 group-hover:text-violet-600" />
-                  Download
-                </Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Choose Download Option</DialogTitle>
-                </DialogHeader>
-                <div className="flex flex-col gap-4 pt-4">
-                  <Button
-                    onClick={() =>
-                      handleDownloadOriginal(product.processedImageUrl!, product.title)
-                    }
-                    variant="outline"
-                    className="group"
-                  >
-                    <Image className="w-4 h-4 mr-2 text-slate-500 group-hover:text-violet-600" />
-                    Download with Transparent Background
+            <>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handleClearBackground(index)}
+                className="group"
+              >
+                <Eraser className="w-4 h-4 mr-2 text-red-500 group-hover:text-red-600" />
+                Clear
+              </Button>
+              
+              <Dialog>
+                <DialogTrigger asChild>
+                  <Button variant="outline" size="sm" className="group">
+                    <Download className="w-4 h-4 mr-2 text-slate-500 group-hover:text-violet-600" />
+                    Download
                   </Button>
-                  <Button
-                    onClick={() =>
-                      handleDownloadWithBackground(
-                        product.processedImageUrl!,
-                        product.title,
-                        selectedColor,
-                        opacity
-                      )
-                    }
-                    variant="default"
-                    className="bg-violet-600 hover:bg-violet-700"
-                  >
-                    <Image className="w-4 h-4 mr-2" />
-                    Download with Custom Background
-                  </Button>
-                </div>
-              </DialogContent>
-            </Dialog>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Choose Download Option</DialogTitle>
+                  </DialogHeader>
+                  <div className="flex flex-col gap-4 pt-4">
+                    <Button
+                      onClick={() =>
+                        handleDownloadOriginal(product.processedImageUrl!, product.title)
+                      }
+                      variant="outline"
+                      className="group"
+                    >
+                      <Image className="w-4 h-4 mr-2 text-slate-500 group-hover:text-violet-600" />
+                      Download with Transparent Background
+                    </Button>
+                    <Button
+                      onClick={() =>
+                        handleDownloadWithBackground(
+                          product.processedImageUrl!,
+                          product.title,
+                          selectedColor,
+                          opacity
+                        )
+                      }
+                      variant="default"
+                      className="bg-violet-600 hover:bg-violet-700"
+                    >
+                      <Image className="w-4 h-4 mr-2" />
+                      Download with Custom Background
+                    </Button>
+                  </div>
+                </DialogContent>
+              </Dialog>
+            </>
           )}
         </div>
       </div>

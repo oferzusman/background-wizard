@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { ProductData } from "../FileUpload";
 import { ProductCard } from "../ProductCard";
@@ -145,9 +146,23 @@ export const ProductGrid = ({ products, onImageProcessed }: ProductGridProps) =>
       canvas.width = img.width;
       canvas.height = img.height;
 
-      ctx.fillStyle = backgroundColor + Math.round(opacity * 2.55).toString(16).padStart(2, '0');
+      // Apply background color with opacity
+      const opacityHex = Math.round(opacity * 2.55).toString(16).padStart(2, '0');
+      
+      if (backgroundColor.startsWith('linear-gradient')) {
+        const gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+        gradient.addColorStop(0, '#ffffff');
+        gradient.addColorStop(1, '#e2e2e2');
+        ctx.fillStyle = gradient;
+      } else if (backgroundColor.startsWith('url')) {
+        ctx.fillStyle = `#ffffff${opacityHex}`;
+      } else {
+        ctx.fillStyle = `${backgroundColor}${opacityHex}`;
+      }
+      
       ctx.fillRect(0, 0, canvas.width, canvas.height);
-
+      
+      // Draw the image on top of the background
       ctx.drawImage(img, 0, 0);
 
       canvas.toBlob((blob) => {
@@ -194,6 +209,7 @@ export const ProductGrid = ({ products, onImageProcessed }: ProductGridProps) =>
           
           csvContent += `${product.id || index},"${product.title}",${filename}\n`;
           
+          // Create canvas and apply background
           const canvas = document.createElement('canvas');
           const ctx = canvas.getContext('2d');
           if (!ctx) continue;
@@ -210,6 +226,7 @@ export const ProductGrid = ({ products, onImageProcessed }: ProductGridProps) =>
           canvas.width = img.width;
           canvas.height = img.height;
           
+          // Apply background color with opacity
           const opacityHex = Math.round(opacity[0] * 2.55).toString(16).padStart(2, '0');
           
           if (selectedColor.startsWith('linear-gradient')) {
@@ -218,15 +235,37 @@ export const ProductGrid = ({ products, onImageProcessed }: ProductGridProps) =>
             gradient.addColorStop(1, '#e2e2e2');
             ctx.fillStyle = gradient;
           } else if (selectedColor.startsWith('url')) {
-            ctx.fillStyle = `#ffffff${opacityHex}`;
+            // Handle background image
+            try {
+              if (selectedColor.startsWith('url(')) {
+                const bgImg = new Image();
+                bgImg.crossOrigin = "anonymous";
+                await new Promise((resolve, reject) => {
+                  bgImg.onload = resolve;
+                  bgImg.onerror = reject;
+                  bgImg.src = selectedColor.slice(4, -1);
+                });
+                
+                // Create pattern or stretch to fill
+                const pattern = ctx.createPattern(bgImg, 'repeat');
+                ctx.fillStyle = pattern || `#ffffff${opacityHex}`;
+              } else {
+                ctx.fillStyle = `#ffffff${opacityHex}`;
+              }
+            } catch (err) {
+              console.error('Error applying background image:', err);
+              ctx.fillStyle = `#ffffff${opacityHex}`;
+            }
           } else {
             ctx.fillStyle = `${selectedColor}${opacityHex}`;
           }
           
           ctx.fillRect(0, 0, canvas.width, canvas.height);
           
+          // Draw the image on top
           ctx.drawImage(img, 0, 0);
           
+          // Convert to blob and add to zip
           const imageBlob = await new Promise<Blob>((resolve) => 
             canvas.toBlob((blob) => resolve(blob!), 'image/png')
           );
@@ -239,8 +278,10 @@ export const ProductGrid = ({ products, onImageProcessed }: ProductGridProps) =>
         }
       }
       
+      // Add CSV file to zip
       zip.file("product_images.csv", csvContent);
       
+      // Generate and download the zip
       const zipBlob = await zip.generateAsync({ type: "blob" });
       const link = document.createElement('a');
       link.href = URL.createObjectURL(zipBlob);

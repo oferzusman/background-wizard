@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { ProductData } from "./FileUpload";
 import { ProductCard } from "./ProductCard";
@@ -178,7 +179,7 @@ export const ProductGrid = ({ products, onImageProcessed }: ProductGridProps) =>
             isSelected={selectedProducts.includes(index)}
             processingIndex={processingIndex}
             selectedColor={selectedColor}
-            opacity={opacity}
+            opacity={opacity[0]}
             handleRemoveBackground={handleRemoveBackground}
             handleDownloadOriginal={handleDownloadOriginal}
             handleDownloadWithBackground={handleDownloadWithBackground}

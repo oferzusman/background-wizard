@@ -1,9 +1,13 @@
-import { Routes, Route } from "react-router-dom";
-import Index from "@/pages/dashboard";
+
+import { Routes, Route, Navigate } from "react-router-dom";
+import Dashboard from "@/pages/dashboard";
 
 const AppPage = () => (
   <Routes>
-    <Route path="/" element={<Index />} />
+    <Route path="/" element={<Dashboard />} />
+    <Route path="/dashboard" element={<Dashboard />} />
+    <Route path="/login" element={<Navigate to="/" replace />} />
+    <Route path="*" element={<Navigate to="/" replace />} />
   </Routes>
 );
 

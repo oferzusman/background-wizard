@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { type ProductData } from "@/components/features/products/FileUpload";
 import { AnimatePresence } from "framer-motion";
@@ -22,7 +23,7 @@ const steps = [
   },
 ];
 
-const Index = () => {
+const Dashboard = () => {
   const [products, setProducts] = useState<ProductData[]>([]);
   const [currentStep, setCurrentStep] = useState(1);
   const [completedSteps, setCompletedSteps] = useState<number[]>([]);
@@ -88,4 +89,4 @@ const Index = () => {
   );
 };
 
-export default Index;
+export default Dashboard;

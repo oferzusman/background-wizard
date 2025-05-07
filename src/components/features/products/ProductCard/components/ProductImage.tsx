@@ -38,6 +38,12 @@ export const ProductImage: React.FC<ProductImageProps> = ({
     paddingBottom: `${bottomPadding}px`
   };
   
+  // Create a combined style object for the background container
+  const containerStyle = processedImageUrl ? {
+    ...getBackgroundStyle(selectedColor, opacity),
+    ...paddingStyle
+  } : paddingStyle;
+  
   return (
     <div className="relative">
       <AspectRatio ratio={1} topMargin={0} bottomMargin={0}>
@@ -60,10 +66,7 @@ export const ProductImage: React.FC<ProductImageProps> = ({
         {processedImageUrl ? (
           <div
             className="w-full h-full relative"
-            style={{
-              ...getBackgroundStyle(selectedColor, opacity),
-              ...paddingStyle
-            }}
+            style={containerStyle}
           >
             <img
               src={processedImageUrl}

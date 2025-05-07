@@ -9,7 +9,8 @@ export const getBackgroundStyle = (selectedColor: string, opacity: number) => {
       backgroundPosition: 'center'
     };
   } else {
-    // Regular color with opacity
+    // For regular colors, ensure opacity is applied correctly
+    // Convert opacity from percentage (0-100) to hex (00-FF)
     const opacityHex = Math.round(opacity * 2.55).toString(16).padStart(2, "0");
     return { backgroundColor: `${selectedColor}${opacityHex}` };
   }

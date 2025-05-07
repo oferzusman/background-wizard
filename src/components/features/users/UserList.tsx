@@ -20,16 +20,10 @@ export const UserList = () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error("No active session");
 
-      // Use an explicit interface for the response type
-      interface RPCResponse {
-        data: UserWithProfile[] | null;
-        error: Error | null;
-      }
-
-      // Cast the response to the expected type
+      // Use the correct response type for the RPC call
       const { data, error } = await supabase.rpc(
         'get_users_with_roles_and_profiles'
-      ) as unknown as RPCResponse;
+      ) as unknown as { data: UserWithProfile[], error: Error | null };
 
       if (error) throw error;
       setUsers(data || []);

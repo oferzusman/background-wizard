@@ -1,9 +1,8 @@
-
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Image as ImageIcon, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
-import { supabase } from "@/lib/supabase/client";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 interface ImageLibraryProps {

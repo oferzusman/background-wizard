@@ -1,10 +1,9 @@
-
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Image, Upload } from "lucide-react";
 import { useRef, useState } from "react";
 import { ImageLibrary } from "./ImageLibrary";
-import { supabase } from "@/lib/supabase/client";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 interface ImageUploaderProps {

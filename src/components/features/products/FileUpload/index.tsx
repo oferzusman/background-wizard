@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { supabase } from "@/lib/supabase/client";
+import { supabase } from "@/integrations/supabase/client";
 import { UrlInput } from "../UrlInput";
 import { FileHistory } from "../FileHistory";
 import { parseFileContent } from "@/lib/utils/fileParser";

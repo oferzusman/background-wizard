@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import { useEffect, useState } from "react";
 import { GradientEditor } from "./GradientEditor";
-import { supabase } from "@/lib/supabase/client";
+import { supabase } from "@/integrations/supabase/client";
 
 interface GradientPickerProps {
   onSelect: (gradient: string) => void;

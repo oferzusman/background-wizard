@@ -29,7 +29,7 @@ export const UserList = () => {
       // Use the correct response type for the RPC call
       const response = await supabase.rpc(
         'get_users_with_roles_and_profiles'
-      ) as { data: UserWithProfile[]; error: Error | null };
+      ) as RPCResponse<UserWithProfile[]>;
 
       if (response.error) throw response.error;
       setUsers(response.data || []);

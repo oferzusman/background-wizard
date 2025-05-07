@@ -8,6 +8,12 @@ import { UserListHeader } from "./UserListHeader";
 import { UserTable } from "./UserTable";
 import { UserWithProfile } from "./types";
 
+// Define an interface for the RPC response type
+interface RPCResponse<T> {
+  data: T;
+  error: Error | null;
+}
+
 export const UserList = () => {
   const [users, setUsers] = useState<UserWithProfile[]>([]);
   const [loading, setLoading] = useState(true);
@@ -23,7 +29,7 @@ export const UserList = () => {
       // Use the correct response type for the RPC call
       const { data, error } = await supabase.rpc(
         'get_users_with_roles_and_profiles'
-      ) as unknown as { data: UserWithProfile[], error: Error | null };
+      ) as RPCResponse<UserWithProfile[]>;
 
       if (error) throw error;
       setUsers(data || []);

@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -20,10 +19,9 @@ export const UserList = () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error("No active session");
 
-      // Use rpc without generics and apply type assertion
+      // Use type assertion for the RPC call result
       const { data, error } = await supabase.rpc(
-        'get_users_with_roles_and_profiles',
-        {}
+        'get_users_with_roles_and_profiles'
       );
 
       if (error) throw error;

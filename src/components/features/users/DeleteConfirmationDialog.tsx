@@ -1,5 +1,13 @@
 
-import { AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import {
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogAction,
+  AlertDialogCancel,
+} from "@/components/ui/alert-dialog";
 
 interface DeleteConfirmationDialogProps {
   userId: string;
@@ -10,16 +18,17 @@ export const DeleteConfirmationDialog = ({ userId, onDelete }: DeleteConfirmatio
   return (
     <AlertDialogContent>
       <AlertDialogHeader>
-        <AlertDialogTitle>Delete User</AlertDialogTitle>
+        <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
         <AlertDialogDescription>
-          Are you sure you want to delete this user? This action cannot be undone.
+          This action cannot be undone. This will permanently delete the user
+          account and remove their data from our servers.
         </AlertDialogDescription>
       </AlertDialogHeader>
       <AlertDialogFooter>
         <AlertDialogCancel>Cancel</AlertDialogCancel>
-        <AlertDialogAction
-          className="bg-red-600 hover:bg-red-700"
+        <AlertDialogAction 
           onClick={() => onDelete(userId)}
+          className="bg-red-600 hover:bg-red-700"
         >
           Delete
         </AlertDialogAction>

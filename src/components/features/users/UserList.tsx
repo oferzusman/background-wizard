@@ -34,15 +34,15 @@ export const UserList = () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error("No active session");
 
-      // Fix the RPC call type error by providing both generic type arguments
-      const { data, error } = await supabase.rpc<UserWithProfile[], null>(
+      // Fix the RPC call by using correct typing approach
+      const { data, error } = await supabase.rpc(
         'get_users_with_roles_and_profiles',
         {},
         { count: 'exact' }
       );
 
       if (error) throw error;
-      setUsers(data || []);
+      setUsers(data as UserWithProfile[] || []);
     } catch (error) {
       console.error("Error fetching users:", error);
       toast.error("Failed to load users");

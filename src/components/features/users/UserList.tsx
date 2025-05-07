@@ -34,8 +34,8 @@ export const UserList = () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error("No active session");
 
-      // Fix the RPC call type error by using the correct approach
-      const { data, error } = await supabase.rpc<UserWithProfile[]>(
+      // Fix the RPC call type error by providing both generic type arguments
+      const { data, error } = await supabase.rpc<UserWithProfile[], null>(
         'get_users_with_roles_and_profiles',
         {},
         { count: 'exact' }

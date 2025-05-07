@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
@@ -33,7 +32,7 @@ type FormValues = {
   firstName: string;
   lastName: string;
   avatarUrl: string;
-  role: string;
+  role: "user" | "admin" | "super_admin"; // Updated to match the expected types
 };
 
 export const EditUserDialog = ({ open, onOpenChange, user, onUserUpdated }: EditUserDialogProps) => {
@@ -44,17 +43,20 @@ export const EditUserDialog = ({ open, onOpenChange, user, onUserUpdated }: Edit
       firstName: "",
       lastName: "",
       avatarUrl: "",
-      role: ""
+      role: "user" as const // Set default with type assertion
     }
   });
   
   useEffect(() => {
     if (user) {
+      // Ensure role is properly typed when setting form values
+      const userRole = user.role as "user" | "admin" | "super_admin";
+      
       form.reset({
         firstName: user.profile?.first_name || "",
         lastName: user.profile?.last_name || "",
         avatarUrl: user.profile?.avatar_url || "",
-        role: user.role || ""
+        role: userRole
       });
     }
   }, [user, form]);
@@ -86,12 +88,12 @@ export const EditUserDialog = ({ open, onOpenChange, user, onUserUpdated }: Edit
         
         if (deleteRoleError) throw deleteRoleError;
         
-        // Add new role
+        // Add new role - ensure we're passing a properly typed role value
         const { error: addRoleError } = await supabase
           .from('user_roles')
           .insert({
             user_id: user.id,
-            role: values.role
+            role: values.role // This is now properly typed as "user" | "admin" | "super_admin"
           });
         
         if (addRoleError) throw addRoleError;

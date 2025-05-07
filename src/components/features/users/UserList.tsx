@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -34,10 +33,10 @@ export const UserList = () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error("No active session");
 
-      // Fetch users with their roles and profiles
+      // Fix the type error by properly handling the return type from the RPC call
       const { data: adminData, error: adminError } = await supabase.rpc(
         'get_users_with_roles_and_profiles'
-      );
+      ) as { data: UserWithProfile[] | null; error: any };
 
       if (adminError) throw adminError;
       setUsers(adminData || []);

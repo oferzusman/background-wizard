@@ -29,22 +29,34 @@ export const applyBackgroundToCanvas = (
     let colorStops: {color: string, position: number}[] = [];
     
     const colorStopRegex = /(#[0-9a-f]{3,8}|rgba?\([^)]+\)|hsla?\([^)]+\))\s*(\d+%)?/gi;
+    // Store all matches to count them later
+    const allMatches: RegExpExecArray[] = [];
+    while ((match = colorStopRegex.exec(gradientString)) !== null) {
+      allMatches.push({...match});
+    }
+    
+    // Reset the regex for second pass
+    colorStopRegex.lastIndex = 0;
+    
+    // Process the matches with knowledge of total count
+    let matchIndex = 0;
     while ((match = colorStopRegex.exec(gradientString)) !== null) {
       const color = match[1];
       let position = match[2] ? parseInt(match[2], 10) / 100 : null;
       
       if (position === null) {
         // If no position is specified, we need to calculate it based on the position in the array
-        if (colorStops.length === 0) {
+        if (matchIndex === 0) {
           position = 0; // First color starts at 0
-        } else if (match === colorStopRegex.lastMatch) {
+        } else if (matchIndex === allMatches.length - 1) {
           position = 1; // Last color ends at 1
         } else {
-          position = colorStops.length / (colorStopRegex.exec.length - 1);
+          position = matchIndex / (allMatches.length - 1);
         }
       }
       
       colorStops.push({ color, position: position as number });
+      matchIndex++;
     }
     
     if (colorStops.length === 0) {

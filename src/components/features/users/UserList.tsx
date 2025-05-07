@@ -27,12 +27,12 @@ export const UserList = () => {
       if (!session) throw new Error("No active session");
 
       // Use the correct response type for the RPC call
-      const { data, error } = await supabase.rpc(
+      const response = await supabase.rpc(
         'get_users_with_roles_and_profiles'
-      ) as RPCResponse<UserWithProfile[]>;
+      ) as { data: UserWithProfile[]; error: Error | null };
 
-      if (error) throw error;
-      setUsers(data || []);
+      if (response.error) throw response.error;
+      setUsers(response.data || []);
     } catch (error) {
       console.error("Error fetching users:", error);
       toast.error("Failed to load users");

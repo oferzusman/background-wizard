@@ -3,12 +3,13 @@ import { Auth } from "@supabase/auth-ui-react";
 import { ThemeSupa } from "@supabase/auth-ui-shared";
 import { supabase } from "@/integrations/supabase/client";
 import { motion } from "framer-motion";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
 const Login = () => {
   const navigate = useNavigate();
+  const [authError, setAuthError] = useState<string | null>(null);
 
   useEffect(() => {
     // Check if user is already logged in
@@ -30,8 +31,25 @@ const Login = () => {
       } else if (event === 'SIGNED_OUT') {
         console.log("User signed out");
         navigate('/login');
+      } else if (event === 'USER_UPDATED') {
+        console.log("User updated");
+      } else if (event === 'PASSWORD_RECOVERY') {
+        console.log("Password recovery initiated");
+      } else if (event === 'TOKEN_REFRESHED') {
+        console.log("Token refreshed");
       }
     });
+
+    // Handle any auth errors in the URL
+    const url = new URL(window.location.href);
+    const errorParam = url.searchParams.get('error');
+    const errorDescription = url.searchParams.get('error_description');
+    
+    if (errorParam || errorDescription) {
+      const errorMessage = errorDescription || `Authentication error: ${errorParam}`;
+      setAuthError(errorMessage);
+      toast.error(errorMessage);
+    }
 
     return () => {
       subscription.unsubscribe();
@@ -55,6 +73,12 @@ const Login = () => {
               Sign in to continue to your account
             </p>
           </div>
+          
+          {authError && (
+            <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-600 rounded-lg text-sm">
+              {authError}
+            </div>
+          )}
           
           <Auth
             supabaseClient={supabase}
@@ -82,10 +106,12 @@ const Login = () => {
                 button: 'bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 transition-all duration-200 text-white font-medium py-2.5 rounded-lg w-full',
                 input: 'w-full px-3 py-2.5 rounded-lg border focus:ring-2 focus:ring-violet-500 focus:border-violet-500 transition-all duration-200',
                 label: 'text-sm font-medium text-slate-700 mb-1',
+                message: 'text-red-600 text-sm py-1',
               },
             }}
             theme="default"
             providers={["google"]}
+            redirectTo={window.location.origin + '/dashboard'}
           />
         </div>
       </motion.div>

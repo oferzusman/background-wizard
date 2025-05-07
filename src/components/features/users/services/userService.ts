@@ -1,6 +1,6 @@
 
 import { supabase } from "@/integrations/supabase/client";
-import { UserFormValues } from "../dialogs/types";
+import { UserFormValues, UserRole } from "../dialogs/types";
 import { UserWithProfile } from "../types";
 import { toast } from "sonner";
 
@@ -24,7 +24,7 @@ export const updateUserProfile = async (
 export const updateUserRole = async (
   userId: string,
   currentRole: string,
-  newRole: string
+  newRole: UserRole
 ): Promise<void> => {
   if (newRole === currentRole) {
     return; // No role change needed

@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { TableCell, TableRow } from "@/components/ui/table";
 import { AlertDialog, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { UserWithProfile } from "./types";
+import { DeleteConfirmationDialog } from "./DeleteConfirmationDialog";
 
 interface UserRowProps {
   user: UserWithProfile;

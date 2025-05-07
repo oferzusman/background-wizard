@@ -1,13 +1,15 @@
 
 import {
-  AlertDialogContent,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogDescription,
-  AlertDialogFooter,
   AlertDialogAction,
   AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle
 } from "@/components/ui/alert-dialog";
+import { Button } from "@/components/ui/button";
+import { useState } from "react";
 
 interface DeleteConfirmationDialogProps {
   userId: string;
@@ -15,22 +17,31 @@ interface DeleteConfirmationDialogProps {
 }
 
 export const DeleteConfirmationDialog = ({ userId, onDelete }: DeleteConfirmationDialogProps) => {
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const handleDelete = () => {
+    setIsDeleting(true);
+    onDelete(userId);
+    // The dialog will close automatically when the trigger is toggled
+  };
+
   return (
     <AlertDialogContent>
       <AlertDialogHeader>
-        <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+        <AlertDialogTitle>Are you sure?</AlertDialogTitle>
         <AlertDialogDescription>
           This action cannot be undone. This will permanently delete the user
-          account and remove their data from our servers.
+          and remove their data from our servers.
         </AlertDialogDescription>
       </AlertDialogHeader>
       <AlertDialogFooter>
-        <AlertDialogCancel>Cancel</AlertDialogCancel>
-        <AlertDialogAction 
-          onClick={() => onDelete(userId)}
-          className="bg-red-600 hover:bg-red-700"
+        <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+        <AlertDialogAction
+          onClick={handleDelete}
+          disabled={isDeleting}
+          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
         >
-          Delete
+          {isDeleting ? "Deleting..." : "Delete User"}
         </AlertDialogAction>
       </AlertDialogFooter>
     </AlertDialogContent>

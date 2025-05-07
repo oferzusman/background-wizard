@@ -1,7 +1,7 @@
 
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { supabase } from "@/lib/supabase/client";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { parseFileContent } from "@/lib/utils/fileParser";
 import { useNavigate } from "react-router-dom";

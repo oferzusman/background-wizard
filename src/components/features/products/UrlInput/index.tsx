@@ -1,8 +1,9 @@
+
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import { supabase } from "@/lib/supabase/client";
+import { supabase } from "@/integrations/supabase/client";
 import { parseFileContent } from "@/lib/utils/fileParser";
 import { Link } from "lucide-react";
 import { ProductData } from "../FileUpload";
